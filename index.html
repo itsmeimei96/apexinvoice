@@ -395,9 +395,11 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
           <select id="f-scity" class="ed-field">
             <option value="">Select city…</option>
             <option>Abbotsford</option><option>Chilliwack</option><option>Hope</option>
-            <option>Langley</option><option>Maple Ridge</option><option>Merritt</option>
-            <option>Mission</option><option>Port Coquitlam</option><option>Surrey</option>
-            <option>Vancouver</option><option>Whistler</option><option>Other</option>
+            <option>Langley</option><option>Lower Mainland</option><option>Maple Ridge</option>
+            <option>Merritt</option><option>Mission</option><option>North Vancouver</option>
+            <option>Port Coquitlam</option><option>Richmond</option><option>Surrey</option>
+            <option>Vancouver</option><option>West Vancouver</option><option>Whistler</option>
+            <option>Other</option>
           </select>
         </div>
       </div>
@@ -533,13 +535,10 @@ db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 const SERVICES = [
-  {label:'Minimum Service Charge (3 hours)', unit:'Hours', rate:250},
-  {label:'Minimum Travel Fee',               unit:'Trips', rate:100},
-  {label:'Labor / Operator hours',           unit:'Hours', rate:85},
-  {label:'Travel Time (≤1 hr)',              unit:'Hours', rate:100},
-  {label:'Mulch (bag x 10)',                 unit:'Bags',  rate:0},
-  {label:'Disposal Fee',                     unit:'Load',  rate:0},
-  {label:'Paver Installation',               unit:'Sq Ft', rate:0},
+  {label:'Minimum Service Fee (3 hrs)', unit:'Hours', rate:250},
+  {label:'Service Fee',                 unit:'Hours', rate:85},
+  {label:'Minimum Travel Fee (≤1 hr)', unit:'Trip',  rate:100},
+  {label:'Travel Fee',                  unit:'Hours', rate:75},
 ];
 const EJ = {svc:'service_dod1yfs', tpl:'template_o2by2hk', key:'AtIAxkG9wGaNxj5H9'};
 const TEN_DAYS = 10*24*60*60*1000;
@@ -734,8 +733,8 @@ function resetForm(){
   $('f-terms').value='Net 30';$('f-status').value='Owing';
   $('f-disc').value='0';$('f-gst').value='5';$('f-notes').value='';
   lineItems=[
-    {service:'Minimum Service Charge (3 hours)',customDesc:'',qty:3,unit:'Hours',rate:250},
-    {service:'Minimum Travel Fee',customDesc:'',qty:1,unit:'Trips',rate:100}
+    {service:'Minimum Service Fee (3 hrs)',customDesc:'',qty:3,unit:'Hours',rate:250},
+    {service:'Minimum Travel Fee (≤1 hr)',customDesc:'',qty:1,unit:'Trip',rate:100}
   ];
 }
 function loadInv(inv){
