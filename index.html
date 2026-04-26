@@ -1482,6 +1482,8 @@ async function fetchSheetInvoices(){
       if(!row.id)continue;
       const inv=invoices.find(i=>i.id===row.id);
       if(!inv){
+        // Only import rows that have name + email + address
+        if(!row.name||!row.email||!row.address)continue;
         // Row exists in sheet but not Firebase — import it
         const fields=statusLabelToFields(String(row.status||'').trim());
         const now=Date.now();

@@ -35,7 +35,7 @@ function doGet(e) {
   const vals = sheet.getDataRange().getValues();
   if (vals.length < 2) return json({ rows: [] });
   const rows = vals.slice(1)
-    .filter(r => r[0] && r[1])   // skip rows with no ID or no name
+    .filter(r => r[0] && r[1] && r[2] && r[3])  // require ID + name + email + address
     .map(r => ({
       id:      String(r[0] || ''),
       name:    String(r[1] || ''),
@@ -73,7 +73,7 @@ function doPost(e) {
 // ── helpers ──────────────────────────────────────────────────────
 function upsertRow(sheet, item) {
   const id    = String(item.id || '');
-  if (!id) return 'skipped';
+  if (!id || !item.name || !item.email || !item.address) return 'skipped';
   const vals  = sheet.getDataRange().getValues();
   const row   = [id, item.name || '', item.email || '', item.address || '', item.status || '', item.total || 0, item.date || ''];
 
