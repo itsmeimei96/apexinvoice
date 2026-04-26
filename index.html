@@ -3,170 +3,303 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apex Terrain — Invoice Generator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Apex Terrain — Invoice Manager</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
-    * { font-family: 'Roboto', sans-serif; box-sizing: border-box; }
-    body { background: #f0f0ef; }
-
-    .field {
-      width: 100%;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 13px;
-      color: #1a1a1a;
-      background: white;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      outline: none;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #f28c28;
+      --orange-dim: rgba(242,140,40,0.12);
+      --dark: #1a1a1a;
+      --mid: #3d3d3d;
+      --grey: #555555;
+      --light: #f0f0ef;
+      --white: #ffffff;
+      --border: #e4e4e4;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --red: #dc2626;
+      --red-bg: #fee2e2;
+      --amber: #b45309;
+      --amber-bg: #fef3c7;
     }
-    .field:focus { border-color: #f28c28; box-shadow: 0 0 0 3px rgba(242,140,40,0.12); }
-    .field::placeholder { color: #bbb; }
+
+    body { font-family: 'Roboto', sans-serif; background: var(--light); color: var(--dark); min-height: 100vh; }
+    h1,h2,h3,h4 { font-family: 'Oswald', sans-serif; }
+
+    /* ── Shared ─────────────────────────────────────────────────── */
+    .field {
+      width: 100%; border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px 12px; font-size: 13px; color: var(--dark);
+      background: var(--white); outline: none; font-family: 'Roboto', sans-serif;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-dim); }
+    .field::placeholder { color: #ccc; }
+    select.field { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
     .label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 5px; }
 
-    .btn-primary {
-      background: #f28c28;
-      color: white;
-      border: none;
-      padding: 11px 24px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.03em;
-      box-shadow: 0 2px 10px rgba(242,140,40,0.35), 0 1px 3px rgba(0,0,0,0.1);
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-primary:active { transform: translateY(0); opacity: 1; }
-    .btn-primary:focus-visible { outline: 3px solid rgba(242,140,40,0.5); outline-offset: 2px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: 0.03em; padding: 10px 20px; font-family: 'Roboto', sans-serif; transition: opacity 0.15s, transform 0.1s; }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+    .btn-orange { background: var(--orange); color: white; box-shadow: 0 2px 10px rgba(242,140,40,0.35); }
+    .btn-dark   { background: var(--dark);   color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .btn-ghost  { background: transparent; color: var(--orange); border: 1.5px solid var(--orange); }
+    .btn-ghost:hover { background: var(--orange-dim); opacity: 1; }
+    .btn-outline { background: transparent; color: #666; border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: #aaa; opacity: 1; }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+    .btn-icon { padding: 7px 10px; }
 
-    .btn-dark {
-      background: #1a1a1a;
-      color: white;
-      border: none;
-      padding: 11px 24px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.03em;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.15);
-      transition: opacity 0.15s, transform 0.1s;
-    }
-    .btn-dark:hover { opacity: 0.85; transform: translateY(-1px); }
-    .btn-dark:active { transform: translateY(0); opacity: 1; }
-    .btn-dark:focus-visible { outline: 3px solid rgba(255,255,255,0.4); outline-offset: 2px; }
+    .card { background: var(--white); border-radius: 10px; padding: 22px; box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04); }
+    .section-heading { font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--dark); margin-bottom: 14px; }
 
-    .btn-ghost {
-      background: transparent;
-      color: #f28c28;
-      border: 1.5px solid #f28c28;
-      padding: 9px 18px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: background 0.15s;
+    /* ── App Header ─────────────────────────────────────────────── */
+    .app-header {
+      background: var(--dark); border-bottom: 3px solid var(--orange);
+      padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
-    .btn-ghost:hover { background: rgba(242,140,40,0.08); }
-    .btn-ghost:focus-visible { outline: 3px solid rgba(242,140,40,0.4); outline-offset: 2px; }
+    .app-header-left { display: flex; align-items: center; gap: 12px; }
+    .app-header img { height: 46px; width: auto; }
+    .app-header-title { font-family: 'Oswald', sans-serif; color: white; font-size: 16px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.1; }
+    .app-header-sub   { color: #666; font-size: 11px; letter-spacing: 0.04em; margin-top: 2px; }
+    .app-header-right { display: flex; align-items: center; gap: 10px; }
 
-    .btn-remove {
-      background: none; border: none; cursor: pointer;
-      color: #ccc; font-size: 18px; line-height: 1; padding: 0 4px;
-      transition: color 0.15s;
+    /* ── Views ──────────────────────────────────────────────────── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Dashboard Stats ────────────────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: white; border-radius: 10px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--border); }
+    .stat-card.orange { border-left-color: var(--orange); }
+    .stat-card.amber  { border-left-color: #f59e0b; }
+    .stat-card.green  { border-left-color: var(--green); }
+    .stat-card.red    { border-left-color: var(--red); }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #999; margin-bottom: 4px; }
+    .stat-value { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; color: var(--dark); }
+
+    /* ── Dashboard Table ────────────────────────────────────────── */
+    .inv-table-wrap { overflow-x: auto; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .inv-table thead tr { background: #f7f7f7; border-bottom: 2px solid var(--border); }
+    .inv-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; white-space: nowrap; }
+    .inv-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .inv-table tbody tr:hover { background: #fafafa; }
+    .inv-table .inv-number { font-weight: 600; color: var(--dark); }
+    .inv-table .inv-customer { font-weight: 500; }
+    .inv-table .inv-total { font-weight: 600; }
+    .inv-empty { text-align: center; padding: 60px 20px; color: #aaa; }
+    .inv-empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .inv-empty p { font-size: 14px; }
+
+    /* Status badge / select */
+    .status-select {
+      border: none; border-radius: 20px; padding: 4px 24px 4px 10px; font-size: 12px; font-weight: 600;
+      cursor: pointer; outline: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center;
+      font-family: 'Roboto', sans-serif;
     }
-    .btn-remove:hover { color: #e53e3e; }
+    .status-Pending { background: var(--amber-bg); color: var(--amber); }
+    .status-Won     { background: var(--green-bg); color: var(--green); }
+    .status-Lost    { background: var(--red-bg);   color: var(--red);   }
+
+    /* Row actions */
+    .row-actions { display: flex; gap: 6px; }
+
+    /* ── Settings Panel ─────────────────────────────────────────── */
+    #settings-panel { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #242424; border-bottom: 3px solid var(--orange); }
+    #settings-panel.open { max-height: 600px; }
+    .settings-inner { max-width: 1000px; margin: 0 auto; padding: 22px 24px; }
+    .settings-section-title { color: var(--orange); font-family: 'Oswald', sans-serif; font-size: 12px; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .settings-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .settings-field { background: #333; border-color: #444; color: white; }
+    .settings-field::placeholder { color: #666; }
+    .settings-field:focus { border-color: var(--orange); }
+
+    /* ── Editor Form ────────────────────────────────────────────── */
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 22px; }
+    .form-grid-2-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-col { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Line Items (Responsive) ────────────────────────────────── */
+    .li-table-head {
+      display: grid;
+      grid-template-columns: 40% 1fr 1fr 1fr 1fr 36px;
+      gap: 4px; padding: 8px 12px;
+      background: var(--orange); border-radius: 6px 6px 0 0;
+    }
+    .li-table-head span {
+      font-family: 'Oswald', sans-serif; font-size: 11px; font-weight: 500;
+      letter-spacing: 0.06em; color: white;
+    }
+    .li-table-head span:nth-child(n+3) { text-align: right; }
+
+    .li-row {
+      display: grid;
+      grid-template-columns: 40% 1fr 1fr 1fr 1fr 36px;
+      gap: 4px; align-items: start;
+      padding: 8px 4px; border-bottom: 1px solid #f0f0f0;
+      background: white;
+    }
+    .li-row:nth-child(even) { background: #fafafa; }
+
+    .li-cell { display: flex; flex-direction: column; gap: 3px; }
+    .li-mob-label { display: none; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; }
 
     .li-input {
-      width: 100%;
-      border: none;
-      background: transparent;
-      font-size: 13px;
-      color: #1a1a1a;
-      outline: none;
-      padding: 2px 4px;
-      border-radius: 3px;
+      width: 100%; border: 1px solid transparent; background: transparent;
+      font-size: 13px; color: var(--dark); outline: none; padding: 4px 6px;
+      border-radius: 4px; font-family: 'Roboto', sans-serif;
+      transition: border-color 0.1s, background 0.1s;
     }
-    .li-input:focus { background: rgba(242,140,40,0.08); outline: 1px solid #f28c28; }
+    .li-input:focus { background: var(--orange-dim); border-color: var(--orange); }
     .li-input::placeholder { color: #ccc; }
+    .li-input.text-right { text-align: right; }
+    .li-amount-val { font-size: 13px; font-weight: 600; text-align: right; padding: 4px 6px; color: var(--dark); }
 
+    .li-select {
+      width: 100%; border: 1px solid transparent; background: transparent;
+      font-size: 13px; color: var(--dark); outline: none; padding: 4px 6px;
+      border-radius: 4px; cursor: pointer; font-family: 'Roboto', sans-serif;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 6px center; padding-right: 22px;
+      transition: border-color 0.1s, background 0.1s;
+    }
+    .li-select:focus { background-color: var(--orange-dim); border-color: var(--orange); outline: none; }
+
+    .li-custom-input {
+      margin-top: 4px; width: 100%; border: 1px solid var(--border); background: white;
+      font-size: 12px; color: var(--dark); outline: none; padding: 4px 8px;
+      border-radius: 4px; font-family: 'Roboto', sans-serif;
+    }
+    .li-custom-input:focus { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange-dim); }
+
+    .btn-li-remove {
+      background: none; border: none; cursor: pointer; color: #ccc; font-size: 18px;
+      line-height: 1; padding: 4px; border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .btn-li-remove:hover { color: var(--red); background: var(--red-bg); }
+
+    /* ── Action Bar ─────────────────────────────────────────────── */
+    .action-bar { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 24px; flex-wrap: wrap; }
+
+    /* ── Invoice Preview ────────────────────────────────────────── */
+    .preview-scroll { overflow-x: auto; }
     #invoice-preview {
-      width: 816px;
-      min-height: 1056px;
-      background: white;
-      margin: 0 auto;
-      box-shadow: 0 8px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.1);
-      font-family: 'Roboto', Arial, sans-serif;
-      font-size: 13px;
-      color: #1a1a1a;
+      width: 816px; min-height: 1056px; background: white;
+      margin: 0 auto; font-family: 'Roboto', Arial, sans-serif;
+      font-size: 13px; color: var(--dark);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
     }
+    .inv-th { font-family: 'Oswald', sans-serif; font-weight: 500; letter-spacing: 0.06em; font-size: 12px; padding: 8px 12px; color: white; }
+    .inv-spacer { border-bottom: 1px solid #f0f0f0; }
 
-    .inv-th {
-      font-family: 'Oswald', sans-serif;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      font-size: 12px;
-      padding: 8px 12px;
-      color: white;
+    /* ── Email Modal ────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
     }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: white; border-radius: 12px; padding: 28px; width: min(440px, 92vw);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+      transform: translateY(12px); transition: transform 0.2s;
+    }
+    .modal-backdrop.open .modal-box { transform: translateY(0); }
+    .modal-title { font-family: 'Oswald', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 18px; }
+    .modal-fields { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+    .modal-status { display: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-    .card {
-      background: white;
-      border-radius: 10px;
-      padding: 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .section-heading {
-      font-family: 'Oswald', sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      letter-spacing: 0.08em;
-      color: #1a1a1a;
-      margin-bottom: 16px;
-    }
-
-    #email-modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-      display: flex; align-items: center; justify-content: center; z-index: 100;
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    #email-modal-backdrop.open { opacity: 1; pointer-events: all; }
-    #email-modal {
-      background: white; border-radius: 12px; padding: 28px; width: 440px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.28), 0 4px 16px rgba(0,0,0,0.12);
-      transform: translateY(12px);
-      transition: transform 0.2s;
-    }
-    #email-modal-backdrop.open #email-modal { transform: translateY(0); }
-
-    #settings-panel {
-      max-height: 0; overflow: hidden;
-      transition: max-height 0.3s ease;
-      background: #242424;
-      border-bottom: 3px solid #f28c28;
-    }
-    #settings-panel.open { max-height: 600px; }
-
+    /* ── Toast ──────────────────────────────────────────────────── */
     #toast {
-      position: fixed; bottom: 28px; right: 28px;
-      background: #1a1a1a; color: white;
-      padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: fixed; bottom: 24px; right: 24px; z-index: 300;
+      background: var(--dark); color: white; padding: 12px 18px;
+      border-radius: 8px; font-size: 13px; font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.28);
       opacity: 0; transform: translateY(8px);
-      transition: opacity 0.25s, transform 0.25s;
-      pointer-events: none; z-index: 200;
+      transition: opacity 0.25s, transform 0.25s; pointer-events: none;
     }
     #toast.show { opacity: 1; transform: translateY(0); }
 
+    /* ── Confirm Dialog ─────────────────────────────────────────── */
+    #confirm-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 250; display: none; align-items: center; justify-content: center; }
+    #confirm-backdrop.open { display: flex; }
+    #confirm-box { background: white; border-radius: 10px; padding: 24px; width: min(360px, 90vw); box-shadow: 0 16px 48px rgba(0,0,0,0.22); }
+    #confirm-msg { font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    #confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 767px) {
+      .app-header { padding: 10px 16px; }
+      .app-header img { height: 36px; }
+      .app-header-title { font-size: 13px; }
+      .app-header-sub { display: none; }
+
+      /* Stats */
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+      /* Dashboard table → cards */
+      .inv-table thead { display: none; }
+      .inv-table tbody { display: block; }
+      .inv-table tr { display: block; background: white; border-radius: 10px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); margin-bottom: 10px; padding: 14px; }
+      .inv-table td { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border: none; font-size: 13px; }
+      .inv-table td::before { content: attr(data-label); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; }
+      .inv-table td.no-label::before { content: ''; }
+      .inv-table td.no-label { justify-content: flex-end; }
+      .row-actions { justify-content: flex-end; }
+
+      /* Editor form */
+      .form-grid-2 { grid-template-columns: 1fr; gap: 16px; }
+      .form-grid-2-inner { grid-template-columns: 1fr 1fr; }
+
+      /* Settings */
+      .settings-grid-3 { grid-template-columns: 1fr; }
+
+      /* Line items → cards */
+      .li-table-head { display: none; }
+      .li-row {
+        display: block;
+        background: white !important;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 12px;
+        position: relative;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      }
+      .li-row .li-desc-col { margin-bottom: 12px; padding-right: 28px; }
+      .li-row .li-meta-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .li-mob-label { display: block; }
+      .li-amount-val { text-align: left; font-size: 14px; }
+      .btn-li-remove { position: absolute; top: 10px; right: 10px; }
+
+      /* Action bar */
+      .action-bar { justify-content: stretch; }
+      .action-bar .btn { flex: 1; justify-content: center; }
+
+      /* Preview scroll hint */
+      .preview-scroll::before {
+        content: 'Scroll right to see full invoice →';
+        display: block; font-size: 11px; color: #aaa; text-align: center; padding: 8px; margin-bottom: 4px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .form-grid-2-inner { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* No-print */
     @media print {
       .no-print { display: none !important; }
       body { background: white; }
@@ -176,298 +309,277 @@
 </head>
 <body>
 
-<!-- App Header -->
-<header class="no-print" style="background: #1a1a1a; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #f28c28;">
-  <div style="display: flex; align-items: center; gap: 14px;">
-    <img src="https://raw.githubusercontent.com/itsmeimei96/apexterrain/main/brand_assets/logo.png" alt="Apex Terrain" style="height: 52px; width: auto;">
-    <div>
-      <div style="font-family: 'Oswald', sans-serif; color: white; font-size: 18px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.1;">INVOICE GENERATOR</div>
-      <div style="color: #555; font-size: 11px; letter-spacing: 0.04em; margin-top: 2px;">Apex Terrain Management Ltd.</div>
-    </div>
-  </div>
-  <button id="settings-toggle" class="btn-ghost">⚙ Settings</button>
-</header>
+<!-- ════════════════════════════════════════════════════════════
+     DASHBOARD VIEW
+════════════════════════════════════════════════════════════ -->
+<div id="view-dashboard" class="view active">
 
-<!-- Settings Panel -->
-<div id="settings-panel" class="no-print">
-  <div style="max-width: 960px; margin: 0 auto; padding: 24px 28px;">
-    <div style="color: #f28c28; font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.08em; margin-bottom: 16px;">COMPANY INFO</div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+  <!-- Header -->
+  <header class="app-header no-print">
+    <div class="app-header-left">
+      <img src="https://raw.githubusercontent.com/itsmeimei96/apexterrain/main/brand_assets/logo.png" alt="Apex Terrain">
       <div>
-        <label class="label" style="color: #777;">Company Name</label>
-        <input id="s-name" class="field" type="text" value="Apex Terrain Management Ltd." style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">Street Address</label>
-        <input id="s-street" class="field" type="text" placeholder="Your street address" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">City, Province, Postal</label>
-        <input id="s-city" class="field" type="text" placeholder="City, Province, Postal code" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">Phone</label>
-        <input id="s-phone" class="field" type="text" placeholder="(123) 456-7890" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">Your Email</label>
-        <input id="s-email" class="field" type="email" placeholder="youremail@domain.com" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">GST Reg #</label>
-        <input id="s-gst" class="field" type="text" placeholder="GST registration number" style="background: #333; border-color: #444; color: white;">
+        <div class="app-header-title">INVOICE DASHBOARD</div>
+        <div class="app-header-sub">Apex Terrain Management Ltd.</div>
       </div>
     </div>
-
-    <div style="color: #f28c28; font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.08em; margin-bottom: 6px;">EMAILJS CONFIGURATION</div>
-    <p style="color: #666; font-size: 11px; margin-bottom: 14px; line-height: 1.6;">
-      Create a free account at <strong style="color: #f28c28;">emailjs.com</strong> → add an Email Service (Gmail etc.) → create a Template with <code style="color: #aaa;">&#123;&#123;invoice_html&#125;&#125;</code> as the HTML body → paste your IDs below.
-    </p>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
-      <div>
-        <label class="label" style="color: #777;">Service ID</label>
-        <input id="s-ej-service" class="field" type="text" placeholder="service_xxxxxxx" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">Template ID</label>
-        <input id="s-ej-template" class="field" type="text" placeholder="template_xxxxxxx" style="background: #333; border-color: #444; color: white;">
-      </div>
-      <div>
-        <label class="label" style="color: #777;">Public Key</label>
-        <input id="s-ej-pubkey" class="field" type="text" placeholder="Public key from Account → API Keys" style="background: #333; border-color: #444; color: white;">
-      </div>
+    <div class="app-header-right">
+      <button class="btn btn-ghost btn-sm" id="dash-settings-toggle">⚙ Settings</button>
+      <button class="btn btn-orange" id="btn-new-invoice">+ New Invoice</button>
     </div>
-    <button id="btn-save-settings" class="btn-primary" style="font-size: 12px; padding: 9px 20px;">Save Settings</button>
-  </div>
-</div>
+  </header>
 
-<!-- Main Layout -->
-<div style="max-width: 1100px; margin: 0 auto; padding: 24px 20px;">
-
-  <!-- Form Panel -->
-  <div class="card no-print" style="margin-bottom: 16px;">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 24px;">
-
-      <!-- Customer Info -->
-      <div>
-        <div class="section-heading">INVOICE TO</div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div>
-            <label class="label">Customer / Company Name</label>
-            <input id="f-cust-name" class="field" type="text" placeholder="Customer Name">
-          </div>
-          <div>
-            <label class="label">Street Address</label>
-            <input id="f-cust-street" class="field" type="text" placeholder="Street address">
-          </div>
-          <div>
-            <label class="label">City, Province, Postal</label>
-            <input id="f-cust-city" class="field" type="text" placeholder="City, Province, Postal code">
-          </div>
-          <div>
-            <label class="label">Customer Email <span style="color: #f28c28;">★</span></label>
-            <input id="f-cust-email" class="field" type="email" placeholder="customer@email.com">
-          </div>
-        </div>
+  <!-- Settings panel (shared) -->
+  <div id="settings-panel" class="no-print">
+    <div class="settings-inner">
+      <div class="settings-section-title">COMPANY INFO</div>
+      <div class="settings-grid-3">
+        <div><label class="label" style="color:#777;">Company Name</label><input id="s-name" class="field settings-field" type="text" value="Apex Terrain Management Ltd."></div>
+        <div><label class="label" style="color:#777;">Street Address</label><input id="s-street" class="field settings-field" type="text" placeholder="Your street address"></div>
+        <div><label class="label" style="color:#777;">City, Province, Postal</label><input id="s-city" class="field settings-field" type="text" placeholder="City, Province, Postal code"></div>
+        <div><label class="label" style="color:#777;">Phone</label><input id="s-phone" class="field settings-field" type="text" placeholder="(123) 456-7890"></div>
+        <div><label class="label" style="color:#777;">Your Email</label><input id="s-email" class="field settings-field" type="email" placeholder="youremail@domain.com"></div>
+        <div><label class="label" style="color:#777;">GST Reg #</label><input id="s-gst" class="field settings-field" type="text" placeholder="GST registration number"></div>
       </div>
-
-      <!-- Invoice Meta -->
-      <div>
-        <div class="section-heading">INVOICE DETAILS</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div>
-            <label class="label">Invoice #</label>
-            <input id="f-inv-num" class="field" type="text" placeholder="INV-001">
-          </div>
-          <div>
-            <label class="label">Date</label>
-            <input id="f-inv-date" class="field" type="date">
-          </div>
-          <div>
-            <label class="label">Due Date</label>
-            <input id="f-inv-due" class="field" type="date">
-          </div>
-          <div>
-            <label class="label">Terms</label>
-            <input id="f-inv-terms" class="field" type="text" placeholder="Net 30">
-          </div>
-          <div>
-            <label class="label">Discount ($)</label>
-            <input id="f-discount" class="field" type="number" value="0" min="0" step="0.01">
-          </div>
-          <div>
-            <label class="label">GST Rate (%)</label>
-            <input id="f-gst-rate" class="field" type="number" value="5" min="0" max="100" step="0.1">
-          </div>
-        </div>
+      <div class="settings-section-title">EMAILJS CONFIGURATION</div>
+      <p style="color:#666;font-size:11px;margin-bottom:12px;line-height:1.6;">Create a free account at <strong style="color:var(--orange);">emailjs.com</strong> → connect Gmail → create a Template with <code style="color:#aaa;">&#123;&#123;invoice_html&#125;&#125;</code> as the HTML body → paste IDs below.</p>
+      <div class="settings-grid-3">
+        <div><label class="label" style="color:#777;">Service ID</label><input id="s-ej-service" class="field settings-field" type="text" placeholder="service_xxxxxxx"></div>
+        <div><label class="label" style="color:#777;">Template ID</label><input id="s-ej-template" class="field settings-field" type="text" placeholder="template_xxxxxxx"></div>
+        <div><label class="label" style="color:#777;">Public Key</label><input id="s-ej-pubkey" class="field settings-field" type="text" placeholder="Public key from Account → API Keys"></div>
       </div>
-    </div>
-
-    <!-- Line Items -->
-    <div>
-      <div class="section-heading">LINE ITEMS</div>
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="background: #f28c28;">
-            <th class="inv-th" style="text-align: left; border-radius: 4px 0 0 4px; width: 44%;">DESCRIPTION</th>
-            <th class="inv-th" style="text-align: center; width: 10%;">QTY</th>
-            <th class="inv-th" style="text-align: center; width: 11%;">UNIT</th>
-            <th class="inv-th" style="text-align: right; width: 14%;">RATE ($)</th>
-            <th class="inv-th" style="text-align: right; width: 14%;">AMOUNT</th>
-            <th class="inv-th" style="width: 7%; border-radius: 0 4px 4px 0;"></th>
-          </tr>
-        </thead>
-        <tbody id="form-line-items"></tbody>
-      </table>
-      <button id="btn-add-line" class="btn-ghost" style="margin-top: 12px; font-size: 12px;">+ Add Line Item</button>
-    </div>
-
-    <!-- Notes -->
-    <div style="margin-top: 20px;">
-      <label class="label">Notes / Payment Instructions</label>
-      <textarea id="f-notes" class="field" rows="3" placeholder="Thank you for your business! Please make payment by the due date." style="resize: vertical; line-height: 1.6;"></textarea>
+      <button id="btn-save-settings" class="btn btn-orange btn-sm">Save Settings</button>
     </div>
   </div>
 
-  <!-- Action Bar -->
-  <div class="no-print" style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 24px;">
-    <button id="btn-download" class="btn-dark">↓ Download PDF</button>
-    <button id="btn-send" class="btn-primary">✉ Send Invoice by Email</button>
-  </div>
+  <!-- Dashboard content -->
+  <div style="max-width:1100px;margin:0 auto;padding:24px 16px;">
 
-  <!-- Invoice Preview -->
-  <div id="invoice-preview">
-
-    <!-- Header -->
-    <div style="background: #3d3d3d; padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start;">
-      <div style="color: white; font-size: 13px; line-height: 2;">
-        <div id="p-co-name" style="font-weight: 500;">Apex Terrain</div>
-        <div id="p-co-street" style="color: #ccc;"></div>
-        <div id="p-co-city" style="color: #ccc;"></div>
-        <div id="p-co-phone" style="color: #ccc;"></div>
-        <div id="p-co-email" style="color: #6bb5ff; text-decoration: underline;"></div>
-      </div>
-      <img src="https://raw.githubusercontent.com/itsmeimei96/apexterrain/main/brand_assets/logo.png" alt="Apex Terrain" style="height: 110px; width: auto;">
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-row">
+      <div class="stat-card orange"><div class="stat-label">Total Invoices</div><div class="stat-value" id="stat-total">0</div></div>
+      <div class="stat-card amber"><div class="stat-label">Pending</div><div class="stat-value" id="stat-pending">$0</div></div>
+      <div class="stat-card green"><div class="stat-label">Won</div><div class="stat-value" id="stat-won">$0</div></div>
+      <div class="stat-card red"><div class="stat-label">Lost</div><div class="stat-value" id="stat-lost">$0</div></div>
     </div>
 
-    <!-- Orange bar -->
-    <div style="height: 6px; background: #f28c28;"></div>
-
-    <!-- Spacer rows -->
-    <div style="height: 28px; border-bottom: 1px solid #f0f0f0;"></div>
-    <div style="height: 24px; border-bottom: 1px solid #f0f0f0;"></div>
-    <div style="height: 24px; border-bottom: 1px solid #f0f0f0;"></div>
-    <div style="height: 24px; border-bottom: 1px solid #f0f0f0;"></div>
-    <div style="height: 24px; border-bottom: 1px solid #f0f0f0;"></div>
-
-    <!-- Invoice To + Meta -->
-    <div style="padding: 20px 32px; display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0;">
-      <div style="font-size: 13px; line-height: 2;">
-        <div style="font-weight: 700;">INVOICE TO</div>
-        <div id="p-cust-name"></div>
-        <div id="p-cust-street"></div>
-        <div id="p-cust-city"></div>
+    <!-- Table card -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:0.06em;">ALL INVOICES</h2>
+        <input id="dash-search" class="field" type="text" placeholder="Search by invoice # or customer…" style="width:220px;font-size:12px;padding:7px 12px;">
       </div>
-      <div style="font-size: 13px; line-height: 2;">
-        <div style="display: flex; gap: 20px;">
-          <span style="font-weight: 700; text-align: right; min-width: 80px;">INVOICE#</span>
-          <span id="p-inv-num" style="min-width: 130px; color: #555;"></span>
-        </div>
-        <div style="display: flex; gap: 20px;">
-          <span style="font-weight: 700; text-align: right; min-width: 80px;">DATE</span>
-          <span id="p-inv-date" style="min-width: 130px; color: #555;"></span>
-        </div>
-        <div style="display: flex; gap: 20px;">
-          <span style="font-weight: 700; text-align: right; min-width: 80px;">DUE DATE</span>
-          <span id="p-inv-due" style="min-width: 130px; color: #555;"></span>
-        </div>
-        <div style="display: flex; gap: 20px;">
-          <span style="font-weight: 700; text-align: right; min-width: 80px;">TERMS</span>
-          <span id="p-inv-terms" style="min-width: 130px; color: #555;"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Spacer -->
-    <div style="height: 24px; border-bottom: 1px solid #f0f0f0;"></div>
-
-    <!-- Line Items Table -->
-    <table style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="background: #f28c28;">
-          <th class="inv-th" style="text-align: left; width: 44%;">DESCRIPTION</th>
-          <th class="inv-th" style="text-align: center; width: 10%;">QTY</th>
-          <th class="inv-th" style="text-align: center; width: 11%;">Unit</th>
-          <th class="inv-th" style="text-align: right; width: 15%;">RATE</th>
-          <th class="inv-th" style="text-align: right; width: 20%;">AMOUNT</th>
-        </tr>
-      </thead>
-      <tbody id="p-line-items"></tbody>
-    </table>
-
-    <!-- Notes + Totals -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 28px 32px;">
-      <div style="width: 44%;">
-        <div style="font-size: 12px; color: #555; font-weight: 600; margin-bottom: 8px;">Notes</div>
-        <div id="p-notes" style="font-size: 12px; color: #444; line-height: 1.7; min-height: 80px; padding: 8px; border: 1px solid #e0e0e0;"></div>
-      </div>
-      <div style="width: 46%;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-          <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 7px 12px; font-weight: 700; text-align: right;">SUBTOTAL</td>
-            <td id="p-subtotal" style="padding: 7px 12px; text-align: right; min-width: 90px;">$0.00</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 7px 12px; font-weight: 700; text-align: right;">DISCOUNT</td>
-            <td id="p-discount" style="padding: 7px 12px; text-align: right;">$ -</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 7px 12px; font-weight: 700; text-align: right;">GST</td>
-            <td id="p-gst" style="padding: 7px 12px; text-align: right;">$0.00</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 7px 12px; font-weight: 700; text-align: right;">TOTAL</td>
-            <td id="p-total" style="padding: 7px 12px; text-align: right;">$0.00</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 12px; font-weight: 700; text-align: right; font-size: 15px; border-top: 2px solid #1a1a1a;">BALANCE DUE</td>
-            <td id="p-balance" style="padding: 10px 12px; text-align: right; font-weight: 700; font-size: 15px; border-top: 2px solid #1a1a1a;">$0.00</td>
-          </tr>
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invoice-table-body">
+            <tr id="empty-row">
+              <td colspan="6">
+                <div class="inv-empty">
+                  <div class="inv-empty-icon">📄</div>
+                  <p>No invoices yet.<br>Click <strong>+ New Invoice</strong> to get started.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Footer -->
-    <div style="border-top: 1px solid #ddd; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #888; margin-top: 40px;">
-      <div>GST Reg #: <span id="p-gst-reg"></span></div>
-      <div>This invoice is brought to you by <strong style="color: #555;">Apex Terrain Management Ltd.</strong></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     EDITOR VIEW
+════════════════════════════════════════════════════════════ -->
+<div id="view-editor" class="view">
+
+  <!-- Header -->
+  <header class="app-header no-print">
+    <div class="app-header-left">
+      <button class="btn btn-outline btn-sm" id="btn-back-dash" style="color:white;border-color:#555;">← Dashboard</button>
+      <div>
+        <div class="app-header-title" id="editor-title">NEW INVOICE</div>
+        <div class="app-header-sub">Apex Terrain Management Ltd.</div>
+      </div>
+    </div>
+    <div class="app-header-right">
+      <button class="btn btn-ghost btn-sm" id="editor-settings-toggle">⚙ Settings</button>
+    </div>
+  </header>
+
+  <!-- Settings panel reused -->
+
+  <div style="max-width:1100px;margin:0 auto;padding:20px 16px;">
+
+    <!-- Form Card -->
+    <div class="card no-print" style="margin-bottom:14px;">
+      <div class="form-grid-2">
+
+        <!-- Customer -->
+        <div>
+          <div class="section-heading">INVOICE TO</div>
+          <div class="form-col">
+            <div><label class="label">Customer / Company Name</label><input id="f-cust-name" class="field" type="text" placeholder="Customer Name"></div>
+            <div><label class="label">Street Address</label><input id="f-cust-street" class="field" type="text" placeholder="Street address"></div>
+            <div><label class="label">City, Province, Postal</label><input id="f-cust-city" class="field" type="text" placeholder="City, Province, Postal code"></div>
+            <div><label class="label">Customer Email <span style="color:var(--orange);">★</span></label><input id="f-cust-email" class="field" type="email" placeholder="customer@email.com"></div>
+          </div>
+        </div>
+
+        <!-- Invoice Meta -->
+        <div>
+          <div class="section-heading">INVOICE DETAILS</div>
+          <div class="form-grid-2-inner">
+            <div><label class="label">Invoice #</label><input id="f-inv-num" class="field" type="text" placeholder="INV-001"></div>
+            <div><label class="label">Date</label><input id="f-inv-date" class="field" type="date"></div>
+            <div><label class="label">Due Date</label><input id="f-inv-due" class="field" type="date"></div>
+            <div><label class="label">Terms</label><input id="f-inv-terms" class="field" type="text" placeholder="Net 30"></div>
+            <div><label class="label">Discount ($)</label><input id="f-discount" class="field" type="number" value="0" min="0" step="0.01"></div>
+            <div><label class="label">GST Rate (%)</label><input id="f-gst-rate" class="field" type="number" value="5" min="0" max="100" step="0.1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div>
+        <div class="section-heading">LINE ITEMS</div>
+        <div class="li-table-head">
+          <span>DESCRIPTION</span>
+          <span>QTY</span>
+          <span style="text-align:right;">UNIT</span>
+          <span style="text-align:right;">RATE ($)</span>
+          <span style="text-align:right;">AMOUNT</span>
+          <span></span>
+        </div>
+        <div id="form-line-items"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-add-line" style="margin-top:12px;">+ Add Line Item</button>
+      </div>
+
+      <!-- Notes -->
+      <div style="margin-top:18px;">
+        <label class="label">Notes / Payment Instructions</label>
+        <textarea id="f-notes" class="field" rows="3" placeholder="Thank you for your business! Please make payment by the due date." style="resize:vertical;line-height:1.6;"></textarea>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar no-print">
+      <button class="btn btn-outline" id="btn-download">↓ Download PDF</button>
+      <button class="btn btn-dark" id="btn-send">✉ Email Invoice</button>
+      <button class="btn btn-orange" id="btn-save-invoice">✓ Save Invoice</button>
+    </div>
+
+    <!-- Invoice Preview -->
+    <div class="preview-scroll">
+      <div id="invoice-preview">
+        <!-- Header -->
+        <div style="background:#3d3d3d;padding:24px 32px;display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="color:white;font-size:13px;line-height:2;">
+            <div id="p-co-name" style="font-weight:500;"></div>
+            <div id="p-co-street" style="color:#ccc;"></div>
+            <div id="p-co-city" style="color:#ccc;"></div>
+            <div id="p-co-phone" style="color:#ccc;"></div>
+            <div id="p-co-email" style="color:#6bb5ff;text-decoration:underline;"></div>
+          </div>
+          <img src="https://raw.githubusercontent.com/itsmeimei96/apexterrain/main/brand_assets/logo.png" alt="Apex Terrain" style="height:110px;width:auto;">
+        </div>
+        <div style="height:6px;background:var(--orange);"></div>
+        <div style="height:28px;" class="inv-spacer"></div>
+        <div style="height:24px;" class="inv-spacer"></div>
+        <div style="height:24px;" class="inv-spacer"></div>
+        <div style="height:24px;" class="inv-spacer"></div>
+        <div style="height:24px;" class="inv-spacer"></div>
+        <!-- To + Meta -->
+        <div style="padding:20px 32px;display:flex;justify-content:space-between;border-bottom:1px solid #f0f0f0;">
+          <div style="font-size:13px;line-height:2;">
+            <div style="font-weight:700;">INVOICE TO</div>
+            <div id="p-cust-name"></div>
+            <div id="p-cust-street"></div>
+            <div id="p-cust-city"></div>
+          </div>
+          <div style="font-size:13px;line-height:2;">
+            <div style="display:flex;gap:20px;"><span style="font-weight:700;min-width:80px;text-align:right;">INVOICE#</span><span id="p-inv-num" style="min-width:130px;color:#555;"></span></div>
+            <div style="display:flex;gap:20px;"><span style="font-weight:700;min-width:80px;text-align:right;">DATE</span><span id="p-inv-date" style="min-width:130px;color:#555;"></span></div>
+            <div style="display:flex;gap:20px;"><span style="font-weight:700;min-width:80px;text-align:right;">DUE DATE</span><span id="p-inv-due" style="min-width:130px;color:#555;"></span></div>
+            <div style="display:flex;gap:20px;"><span style="font-weight:700;min-width:80px;text-align:right;">TERMS</span><span id="p-inv-terms" style="min-width:130px;color:#555;"></span></div>
+          </div>
+        </div>
+        <div style="height:24px;" class="inv-spacer"></div>
+        <!-- Line items -->
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--orange);">
+              <th class="inv-th" style="text-align:left;width:44%;">DESCRIPTION</th>
+              <th class="inv-th" style="text-align:center;width:10%;">QTY</th>
+              <th class="inv-th" style="text-align:center;width:11%;">Unit</th>
+              <th class="inv-th" style="text-align:right;width:15%;">RATE</th>
+              <th class="inv-th" style="text-align:right;width:20%;">AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody id="p-line-items"></tbody>
+        </table>
+        <!-- Notes + Totals -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:28px 32px;">
+          <div style="width:44%;">
+            <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:8px;">Notes</div>
+            <div id="p-notes" style="font-size:12px;color:#444;line-height:1.7;min-height:80px;padding:8px;border:1px solid #e0e0e0;"></div>
+          </div>
+          <div style="width:46%;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <tr style="border-bottom:1px solid #eee;"><td style="padding:7px 12px;font-weight:700;text-align:right;">SUBTOTAL</td><td id="p-subtotal" style="padding:7px 12px;text-align:right;min-width:90px;">$0.00</td></tr>
+              <tr style="border-bottom:1px solid #eee;"><td style="padding:7px 12px;font-weight:700;text-align:right;">DISCOUNT</td><td id="p-discount" style="padding:7px 12px;text-align:right;">$ -</td></tr>
+              <tr style="border-bottom:1px solid #eee;"><td style="padding:7px 12px;font-weight:700;text-align:right;">GST</td><td id="p-gst" style="padding:7px 12px;text-align:right;">$0.00</td></tr>
+              <tr style="border-bottom:1px solid #eee;"><td style="padding:7px 12px;font-weight:700;text-align:right;">TOTAL</td><td id="p-total" style="padding:7px 12px;text-align:right;">$0.00</td></tr>
+              <tr><td style="padding:10px 12px;font-weight:700;text-align:right;font-size:15px;border-top:2px solid var(--dark);">BALANCE DUE</td><td id="p-balance" style="padding:10px 12px;text-align:right;font-weight:700;font-size:15px;border-top:2px solid var(--dark);">$0.00</td></tr>
+            </table>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="border-top:1px solid #ddd;padding:14px 32px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#888;margin-top:40px;">
+          <div>GST Reg #: <span id="p-gst-reg"></span></div>
+          <div>This invoice is brought to you by <strong style="color:#555;">Apex Terrain Management Ltd.</strong></div>
+        </div>
+      </div>
     </div>
 
   </div>
 </div>
 
-<!-- Email Modal -->
-<div id="email-modal-backdrop" class="no-print">
-  <div id="email-modal">
-    <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 16px; letter-spacing: 0.06em; color: #1a1a1a; margin-bottom: 20px;">SEND INVOICE</div>
-    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
-      <div>
-        <label class="label">Recipient Email</label>
-        <input id="m-email" class="field" type="email" placeholder="customer@email.com">
-      </div>
-      <div>
-        <label class="label">Subject</label>
-        <input id="m-subject" class="field" type="text" placeholder="Invoice from Apex Terrain Management">
-      </div>
-      <div>
-        <label class="label">Message</label>
-        <textarea id="m-message" class="field" rows="4" style="resize: vertical; line-height: 1.6;" placeholder="Please find your invoice below. Don't hesitate to reach out with any questions."></textarea>
-      </div>
+
+<!-- ── Email Modal ──────────────────────────────────────────── -->
+<div id="email-modal" class="modal-backdrop no-print">
+  <div class="modal-box">
+    <div class="modal-title">SEND INVOICE</div>
+    <div class="modal-fields">
+      <div><label class="label">Recipient Email</label><input id="m-email" class="field" type="email" placeholder="customer@email.com"></div>
+      <div><label class="label">Subject</label><input id="m-subject" class="field" type="text"></div>
+      <div><label class="label">Message</label><textarea id="m-message" class="field" rows="4" style="resize:vertical;line-height:1.6;" placeholder="Please find your invoice below…"></textarea></div>
     </div>
-    <div id="m-status" style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 14px;"></div>
-    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-      <button id="btn-modal-cancel" class="btn-ghost" style="border-color: #ccc; color: #666;">Cancel</button>
-      <button id="btn-modal-send" class="btn-primary">Send Invoice</button>
+    <div id="m-status" class="modal-status"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="btn-modal-cancel">Cancel</button>
+      <button class="btn btn-orange" id="btn-modal-send">Send Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirm Dialog ───────────────────────────────────────── -->
+<div id="confirm-backdrop" class="no-print">
+  <div id="confirm-box">
+    <div id="confirm-msg"></div>
+    <div id="confirm-actions">
+      <button class="btn btn-outline btn-sm" id="confirm-no">Cancel</button>
+      <button class="btn btn-sm" id="confirm-yes" style="background:var(--red);color:white;">Delete</button>
     </div>
   </div>
 </div>
@@ -475,21 +587,39 @@
 <div id="toast"></div>
 
 <script>
-let lineItems = [
-  { desc: 'Minimum Travel Fee (1hour/$100)', qty: 2, unit: 'Trips', rate: 100 },
-  { desc: 'Minimum Service Charge (3 hours)', qty: 3, unit: 'Hours', rate: 250 },
+// ═══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const SERVICE_CATALOG = [
+  { label: 'Minimum Service Charge (3 hours)', unit: 'Hours', rate: 250 },
+  { label: 'Minimum Travel Fee',               unit: 'Trips', rate: 100 },
+  { label: 'Labor / Operator hours',           unit: 'Hours', rate: 85  },
+  { label: 'Travel Time (≤1 hr)',              unit: 'Hours', rate: 100 },
+  { label: 'Mulch (bag x 10)',                 unit: 'Bags',  rate: 0   },
+  { label: 'Disposal Fee',                     unit: 'Load',  rate: 0   },
+  { label: 'Paver Installation',               unit: 'Sq Ft', rate: 0   },
 ];
 
-const $ = id => document.getElementById(id);
-const val = id => $(id) ? $(id).value.trim() : '';
-const setText = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let invoices   = [];
+let lineItems  = [];
+let editingId  = null; // null = new invoice
 
-function fmt(n) { return '$' + Math.abs(n).toFixed(2); }
-function fmtDate(s) {
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+const $  = id => document.getElementById(id);
+const val = id => $(id) ? $(id).value.trim() : '';
+const setText = (id, t) => { const e = $(id); if (e) e.textContent = t; };
+const fmt = n => '$' + Math.abs(n).toFixed(2);
+const fmtDate = s => {
   if (!s) return '';
   const d = new Date(s + 'T00:00:00');
-  return d.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+  return d.toLocaleDateString('en-CA', { year:'numeric', month:'short', day:'numeric' });
+};
+const fmtMoney = n => '$' + n.toLocaleString('en-CA', { minimumFractionDigits:2, maximumFractionDigits:2 });
 
 function showToast(msg, ok = true) {
   const t = $('toast');
@@ -499,8 +629,24 @@ function showToast(msg, ok = true) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════════════════════════════
+function loadInvoices() {
+  invoices = JSON.parse(localStorage.getItem('apex-invoices') || '[]');
+}
+function saveInvoicesStore() {
+  localStorage.setItem('apex-invoices', JSON.stringify(invoices));
+}
+function getSettings() {
+  return JSON.parse(localStorage.getItem('apex-inv-settings') || '{}');
+}
 function loadSettings() {
-  const s = JSON.parse(localStorage.getItem('apex-inv-settings') || '{}');
+  const s = getSettings();
   if (s.name)       $('s-name').value = s.name;
   if (s.street)     $('s-street').value = s.street;
   if (s.city)       $('s-city').value = s.city;
@@ -511,97 +657,301 @@ function loadSettings() {
   if (s.ejTemplate) $('s-ej-template').value = s.ejTemplate;
   if (s.ejPubkey)   $('s-ej-pubkey').value = s.ejPubkey;
 }
-
-function getSettings() {
-  return JSON.parse(localStorage.getItem('apex-inv-settings') || '{}');
-}
-
 $('btn-save-settings').addEventListener('click', () => {
   localStorage.setItem('apex-inv-settings', JSON.stringify({
-    name:       $('s-name').value,
-    street:     $('s-street').value,
-    city:       $('s-city').value,
-    phone:      $('s-phone').value,
-    email:      $('s-email').value,
-    gst:        $('s-gst').value,
-    ejService:  $('s-ej-service').value,
-    ejTemplate: $('s-ej-template').value,
-    ejPubkey:   $('s-ej-pubkey').value,
+    name:$('s-name').value, street:$('s-street').value, city:$('s-city').value,
+    phone:$('s-phone').value, email:$('s-email').value, gst:$('s-gst').value,
+    ejService:$('s-ej-service').value, ejTemplate:$('s-ej-template').value, ejPubkey:$('s-ej-pubkey').value,
   }));
   $('settings-panel').classList.remove('open');
   updatePreview();
   showToast('Settings saved!');
 });
 
-$('settings-toggle').addEventListener('click', () => {
-  $('settings-panel').classList.toggle('open');
-});
+// ═══════════════════════════════════════════════════════════════
+//  SETTINGS TOGGLE (wired to both headers)
+// ═══════════════════════════════════════════════════════════════
+function toggleSettings() { $('settings-panel').classList.toggle('open'); }
+$('dash-settings-toggle').addEventListener('click', toggleSettings);
+$('editor-settings-toggle').addEventListener('click', toggleSettings);
+
+// Move settings panel: it needs to be inside whichever view is active
+// We place it globally by inserting after each header dynamically
+function repositionSettings() {
+  const panel = $('settings-panel');
+  const activeHeader = document.querySelector('.view.active .app-header');
+  if (activeHeader) activeHeader.after(panel);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VIEW MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $(name).classList.add('active');
+  repositionSettings();
+  window.scrollTo(0,0);
+}
+
+function showDashboard() {
+  showView('view-dashboard');
+  renderDashboard();
+}
+
+function showEditor(inv = null) {
+  showView('view-editor');
+  if (inv) {
+    editingId = inv.id;
+    $('editor-title').textContent = 'EDIT INVOICE';
+    loadInvoiceIntoForm(inv);
+  } else {
+    editingId = null;
+    $('editor-title').textContent = 'NEW INVOICE';
+    resetForm();
+  }
+  renderFormItems();
+  updatePreview();
+}
+
+$('btn-new-invoice').addEventListener('click', () => showEditor(null));
+$('btn-back-dash').addEventListener('click', () => showDashboard());
+
+// ═══════════════════════════════════════════════════════════════
+//  INVOICE NUMBER AUTO-INCREMENT
+// ═══════════════════════════════════════════════════════════════
+function nextInvoiceNumber() {
+  const nums = invoices.map(inv => {
+    const m = String(inv.number||'').match(/(\d+)$/);
+    return m ? parseInt(m[1]) : 0;
+  });
+  const max = nums.length ? Math.max(...nums) : 0;
+  return 'INV-' + String(max + 1).padStart(3, '0');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FORM RESET / LOAD
+// ═══════════════════════════════════════════════════════════════
+function resetForm() {
+  const today = new Date().toISOString().split('T')[0];
+  const due = new Date(); due.setDate(due.getDate() + 30);
+  $('f-cust-name').value = '';
+  $('f-cust-street').value = '';
+  $('f-cust-city').value = '';
+  $('f-cust-email').value = '';
+  $('f-inv-num').value = nextInvoiceNumber();
+  $('f-inv-date').value = today;
+  $('f-inv-due').value = due.toISOString().split('T')[0];
+  $('f-inv-terms').value = 'Net 30';
+  $('f-discount').value = '0';
+  $('f-gst-rate').value = '5';
+  $('f-notes').value = '';
+  lineItems = [
+    { service: 'Minimum Service Charge (3 hours)', customDesc: '', qty: 3, unit: 'Hours', rate: 250 },
+    { service: 'Minimum Travel Fee',               customDesc: '', qty: 1, unit: 'Trips', rate: 100 },
+  ];
+}
+
+function loadInvoiceIntoForm(inv) {
+  $('f-cust-name').value   = inv.customer?.name   || '';
+  $('f-cust-street').value = inv.customer?.street  || '';
+  $('f-cust-city').value   = inv.customer?.city    || '';
+  $('f-cust-email').value  = inv.customer?.email   || '';
+  $('f-inv-num').value     = inv.number  || '';
+  $('f-inv-date').value    = inv.date    || '';
+  $('f-inv-due').value     = inv.dueDate || '';
+  $('f-inv-terms').value   = inv.terms   || 'Net 30';
+  $('f-discount').value    = String(inv.discount  || 0);
+  $('f-gst-rate').value    = String(inv.gstRate   || 5);
+  $('f-notes').value       = inv.notes   || '';
+  lineItems = (inv.lineItems || []).map(li => ({ ...li }));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LINE ITEM RENDERING (FORM)
+// ═══════════════════════════════════════════════════════════════
+function buildSelectOptions(selectedService) {
+  let opts = '<option value="" disabled' + (selectedService === '' ? ' selected' : '') + '>Select a service…</option>';
+  SERVICE_CATALOG.forEach(s => {
+    opts += `<option value="${escHtml(s.label)}"${selectedService === s.label ? ' selected' : ''}>${escHtml(s.label)}</option>`;
+  });
+  opts += `<option value="__other"${selectedService === '__other' ? ' selected' : ''}>✏ Other — Manual Entry</option>`;
+  return opts;
+}
 
 function renderFormItems() {
-  const tbody = $('form-line-items');
-  tbody.innerHTML = '';
+  const container = $('form-line-items');
+  container.innerHTML = '';
+
   lineItems.forEach((item, i) => {
     const amount = (item.qty * item.rate).toFixed(2);
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid #f0f0f0';
-    tr.style.background = i % 2 === 0 ? '#fafafa' : 'white';
-    tr.innerHTML = `
-      <td style="padding: 6px 12px;">
-        <input class="li-input" type="text" value="${escAttr(item.desc)}" placeholder="Description"
-               data-i="${i}" data-field="desc" onchange="updateItem(this)">
-      </td>
-      <td style="padding: 6px 8px; text-align: center;">
-        <input class="li-input" type="number" value="${item.qty}" min="0" step="0.5" style="text-align: center;"
-               data-i="${i}" data-field="qty" onchange="updateItemNum(this)">
-      </td>
-      <td style="padding: 6px 8px; text-align: center;">
-        <input class="li-input" type="text" value="${escAttr(item.unit)}" placeholder="hrs"
-               style="text-align: center;" data-i="${i}" data-field="unit" onchange="updateItem(this)">
-      </td>
-      <td style="padding: 6px 8px; text-align: right;">
-        <input class="li-input" type="number" value="${item.rate}" min="0" step="0.01" style="text-align: right;"
-               data-i="${i}" data-field="rate" onchange="updateItemNum(this)">
-      </td>
-      <td style="padding: 6px 12px; text-align: right; font-size: 13px; color: #555;">$${amount}</td>
-      <td style="padding: 6px 8px; text-align: center;">
-        <button class="btn-remove" onclick="removeLine(${i})" title="Remove">×</button>
-      </td>
+    const isOther = item.service === '__other';
+
+    const row = document.createElement('div');
+    row.className = 'li-row';
+    row.dataset.index = i;
+
+    row.innerHTML = `
+      <!-- Description col -->
+      <div class="li-desc-col">
+        <span class="li-mob-label" style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#aaa;margin-bottom:4px;">SERVICE</span>
+        <select class="li-select" data-i="${i}" onchange="onServiceChange(this)">
+          ${buildSelectOptions(item.service)}
+        </select>
+        <input class="li-custom-input" type="text"
+               value="${escHtml(item.customDesc)}"
+               placeholder="Describe the service…"
+               style="${isOther ? '' : 'display:none;'}"
+               data-i="${i}"
+               onchange="lineItems[this.dataset.i].customDesc = this.value; updatePreview();"
+               oninput="lineItems[this.dataset.i].customDesc = this.value; updatePreview();">
+      </div>
+
+      <!-- Meta cols -->
+      <div class="li-meta-cols" style="display:contents;">
+        <div class="li-cell">
+          <span class="li-mob-label">QTY</span>
+          <input class="li-input" type="number" value="${item.qty}" min="0" step="0.5"
+                 data-i="${i}" data-field="qty"
+                 onchange="updateItemNum(this)" oninput="updateItemNum(this)">
+        </div>
+        <div class="li-cell">
+          <span class="li-mob-label">UNIT</span>
+          <input class="li-input text-right" type="text" value="${escHtml(item.unit)}" placeholder="hrs"
+                 data-i="${i}" data-field="unit"
+                 onchange="updateItemStr(this)" oninput="updateItemStr(this)">
+        </div>
+        <div class="li-cell">
+          <span class="li-mob-label">RATE ($)</span>
+          <input class="li-input text-right" type="number" value="${item.rate}" min="0" step="0.01"
+                 data-i="${i}" data-field="rate"
+                 onchange="updateItemNum(this)" oninput="updateItemNum(this)">
+        </div>
+        <div class="li-cell">
+          <span class="li-mob-label">AMOUNT</span>
+          <span class="li-amount-val" id="li-amt-${i}">$${amount}</span>
+        </div>
+      </div>
+
+      <button class="btn-li-remove" onclick="removeLine(${i})" title="Remove">×</button>
     `;
-    tbody.appendChild(tr);
+
+    // On mobile, restructure the meta cols into a 2x2 card grid
+    container.appendChild(row);
+  });
+
+  // Wrap the four meta cells in a grid div on mobile
+  applyMobileCardLayout();
+}
+
+function applyMobileCardLayout() {
+  // On all screen sizes, ensure the li-meta-cols children get wrapped in a grid div
+  $('form-line-items').querySelectorAll('.li-row').forEach(row => {
+    const cells = row.querySelectorAll('.li-cell');
+    if (cells.length === 0) return;
+    if (row.querySelector('.li-meta-grid-wrap')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'li-meta-grid-wrap';
+    wrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;';
+    cells.forEach(c => { c.style.display = 'flex'; c.style.flexDirection = 'column'; wrap.appendChild(c); });
+    // On desktop, lay them out horizontally via CSS - we'll override below
+    row.insertBefore(wrap, row.querySelector('.btn-li-remove'));
   });
 }
 
-function escAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
-function updateItem(el) { lineItems[el.dataset.i][el.dataset.field] = el.value; renderFormItems(); updatePreview(); }
-function updateItemNum(el) { lineItems[el.dataset.i][el.dataset.field] = parseFloat(el.value) || 0; renderFormItems(); updatePreview(); }
-function removeLine(i) { lineItems.splice(i, 1); renderFormItems(); updatePreview(); }
+function onServiceChange(sel) {
+  const i = parseInt(sel.dataset.i);
+  const chosen = sel.value;
+  lineItems[i].service = chosen;
+
+  const row = sel.closest('.li-row');
+  const customInput = row.querySelector('.li-custom-input');
+
+  if (chosen === '__other') {
+    customInput.style.display = '';
+    customInput.focus();
+    lineItems[i].customDesc = customInput.value;
+  } else {
+    customInput.style.display = 'none';
+    lineItems[i].customDesc = '';
+    const preset = SERVICE_CATALOG.find(s => s.label === chosen);
+    if (preset) {
+      lineItems[i].unit = preset.unit;
+      lineItems[i].rate = preset.rate;
+      // Update the inputs in the same row
+      const inputs = row.querySelectorAll('.li-input');
+      inputs.forEach(inp => {
+        if (inp.dataset.field === 'unit') inp.value = preset.unit;
+        if (inp.dataset.field === 'rate') inp.value = preset.rate;
+      });
+    }
+  }
+  recalcRow(i);
+  updatePreview();
+}
+
+function updateItemNum(el) {
+  const i = parseInt(el.dataset.i);
+  lineItems[i][el.dataset.field] = parseFloat(el.value) || 0;
+  recalcRow(i);
+  updatePreview();
+}
+function updateItemStr(el) {
+  const i = parseInt(el.dataset.i);
+  lineItems[i][el.dataset.field] = el.value;
+  updatePreview();
+}
+function recalcRow(i) {
+  const amt = (lineItems[i].qty * lineItems[i].rate).toFixed(2);
+  const amtEl = $('li-amt-' + i);
+  if (amtEl) amtEl.textContent = '$' + amt;
+}
+function removeLine(i) {
+  lineItems.splice(i, 1);
+  renderFormItems();
+  updatePreview();
+}
 
 $('btn-add-line').addEventListener('click', () => {
-  lineItems.push({ desc: '', qty: 1, unit: '', rate: 0 });
-  renderFormItems(); updatePreview();
-  const rows = $('form-line-items').querySelectorAll('tr');
-  if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+  lineItems.push({ service: '', customDesc: '', qty: 1, unit: '', rate: 0 });
+  renderFormItems();
+  updatePreview();
+  // Focus the new select
+  const rows = $('form-line-items').querySelectorAll('.li-row');
+  if (rows.length) rows[rows.length-1].querySelector('select').focus();
 });
 
+// Desktop: override the grid wrap to flow horizontally
+const desktopStyle = document.createElement('style');
+desktopStyle.textContent = `
+  @media (min-width: 768px) {
+    .li-row { display: grid; grid-template-columns: 40% 1fr 36px; align-items: start; }
+    .li-meta-grid-wrap { grid-template-columns: repeat(4, 1fr) !important; margin-top: 0 !important; }
+    .li-mob-label { display: none !important; }
+    .li-input.text-right { text-align: right; }
+    .li-amount-val { text-align: right !important; }
+    .li-desc-col { padding-right: 8px; }
+  }
+`;
+document.head.appendChild(desktopStyle);
+
+// ═══════════════════════════════════════════════════════════════
+//  PREVIEW UPDATE
+// ═══════════════════════════════════════════════════════════════
 function updatePreview() {
   const s = getSettings();
-
   setText('p-co-name',   s.name   || 'Apex Terrain');
   setText('p-co-street', s.street || 'Your street address');
   setText('p-co-city',   s.city   || 'City, Province, Postal code');
   setText('p-co-phone',  s.phone  || '(123) 456-7890');
   setText('p-co-email',  s.email  || 'youremail@domain.com');
   setText('p-gst-reg',   s.gst    || '');
-
   setText('p-cust-name',   val('f-cust-name'));
   setText('p-cust-street', val('f-cust-street'));
   setText('p-cust-city',   val('f-cust-city'));
-
-  setText('p-inv-num',   val('f-inv-num')   || 'INVOICE#');
-  setText('p-inv-date',  fmtDate(val('f-inv-date'))  || 'DATE');
-  setText('p-inv-due',   fmtDate(val('f-inv-due'))   || 'DUE DATE');
+  setText('p-inv-num',   val('f-inv-num')  || 'INVOICE#');
+  setText('p-inv-date',  fmtDate(val('f-inv-date')) || 'DATE');
+  setText('p-inv-due',   fmtDate(val('f-inv-due'))  || 'DUE DATE');
   setText('p-inv-terms', val('f-inv-terms') || 'TERMS');
-
   $('p-notes').textContent = val('f-notes');
 
   const tbody = $('p-line-items');
@@ -609,33 +959,28 @@ function updatePreview() {
   let subtotal = 0;
 
   lineItems.forEach((item, i) => {
+    const desc   = item.service === '__other' ? item.customDesc : item.service;
     const amount = item.qty * item.rate;
     subtotal += amount;
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid #eee';
-    tr.style.background = i % 2 === 0 ? '#f9f9f9' : 'white';
+    tr.style.background   = i % 2 === 0 ? '#f9f9f9' : 'white';
     tr.innerHTML = `
-      <td style="padding: 7px 12px; font-size: 13px;">${item.desc || ''}</td>
-      <td style="padding: 7px 12px; font-size: 13px; text-align: center;">${item.qty}</td>
-      <td style="padding: 7px 12px; font-size: 13px; text-align: center;">${item.unit || ''}</td>
-      <td style="padding: 7px 12px; font-size: 13px; text-align: right;">${fmt(item.rate)}</td>
-      <td style="padding: 7px 12px; font-size: 13px; text-align: right;">${amount < 0 ? '-' : ''}${fmt(amount)}</td>
+      <td style="padding:7px 12px;font-size:13px;">${escHtml(desc)}</td>
+      <td style="padding:7px 12px;font-size:13px;text-align:center;">${item.qty}</td>
+      <td style="padding:7px 12px;font-size:13px;text-align:center;">${escHtml(item.unit)}</td>
+      <td style="padding:7px 12px;font-size:13px;text-align:right;">${fmt(item.rate)}</td>
+      <td style="padding:7px 12px;font-size:13px;text-align:right;">${amount < 0 ? '-' : ''}${fmt(amount)}</td>
     `;
     tbody.appendChild(tr);
   });
 
-  const fillerCount = Math.max(0, 10 - lineItems.length);
-  for (let i = 0; i < fillerCount; i++) {
+  // Filler rows
+  for (let i = 0; i < Math.max(0, 10 - lineItems.length); i++) {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '1px solid #eee';
-    tr.style.background = (lineItems.length + i) % 2 === 0 ? '#f9f9f9' : 'white';
-    tr.innerHTML = `
-      <td style="padding: 7px 12px;"></td>
-      <td style="padding: 7px 12px; text-align: center; color: #ccc; font-size: 13px;">0</td>
-      <td style="padding: 7px 12px;"></td>
-      <td style="padding: 7px 12px; text-align: right; color: #ccc; font-size: 13px;">$0.00</td>
-      <td style="padding: 7px 12px; text-align: right; color: #ccc; font-size: 13px;">$0.00</td>
-    `;
+    tr.style.background   = (lineItems.length + i) % 2 === 0 ? '#f9f9f9' : 'white';
+    tr.innerHTML = `<td style="padding:7px 12px;"></td><td style="padding:7px 12px;text-align:center;color:#ccc;">0</td><td style="padding:7px 12px;"></td><td style="padding:7px 12px;text-align:right;color:#ccc;">$0.00</td><td style="padding:7px 12px;text-align:right;color:#ccc;">$0.00</td>`;
     tbody.appendChild(tr);
   }
 
@@ -659,52 +1004,120 @@ function updatePreview() {
   }
 }
 
+// Attach form listeners
 ['f-cust-name','f-cust-street','f-cust-city','f-cust-email',
  'f-inv-num','f-inv-date','f-inv-due','f-inv-terms',
  'f-discount','f-gst-rate','f-notes'].forEach(id => $(id).addEventListener('input', updatePreview));
-
 ['s-name','s-street','s-city','s-phone','s-email','s-gst'].forEach(id => $(id).addEventListener('input', updatePreview));
-
 $('m-email').addEventListener('input',   function() { this.dataset.manual = '1'; });
 $('m-subject').addEventListener('input', function() { this.dataset.manual = '1'; });
 
-$('btn-download').addEventListener('click', () => {
-  const el = $('invoice-preview');
-  const invNum = val('f-inv-num') || 'invoice';
-  html2pdf().set({
-    margin: 0,
-    filename: `Apex-Terrain-${invNum}.pdf`,
-    image: { type: 'jpeg', quality: 0.97 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' }
-  }).from(el).save();
+// ═══════════════════════════════════════════════════════════════
+//  COMPUTE TOTALS (for saving)
+// ═══════════════════════════════════════════════════════════════
+function computeTotals() {
+  let subtotal = lineItems.reduce((s, item) => s + item.qty * item.rate, 0);
+  const discount  = parseFloat(val('f-discount'))  || 0;
+  const gstRate   = (parseFloat(val('f-gst-rate')) || 5) / 100;
+  const afterDisc = Math.max(0, subtotal - discount);
+  const gst       = afterDisc * gstRate;
+  const total     = afterDisc + gst;
+  return { subtotal, discount, gst, total, gstRate: parseFloat(val('f-gst-rate')) || 5 };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE INVOICE
+// ═══════════════════════════════════════════════════════════════
+function buildInvoiceObject(existingStatus = 'Pending') {
+  const t = computeTotals();
+  return {
+    id:        editingId || ('inv_' + Date.now()),
+    number:    val('f-inv-num') || nextInvoiceNumber(),
+    date:      val('f-inv-date'),
+    dueDate:   val('f-inv-due'),
+    terms:     val('f-inv-terms'),
+    customer: {
+      name:   val('f-cust-name'),
+      street: val('f-cust-street'),
+      city:   val('f-cust-city'),
+      email:  val('f-cust-email'),
+    },
+    lineItems:  lineItems.map(li => ({ ...li })),
+    notes:      val('f-notes'),
+    discount:   parseFloat(val('f-discount')) || 0,
+    gstRate:    t.gstRate,
+    subtotal:   t.subtotal,
+    gst:        t.gst,
+    total:      t.total,
+    status:     existingStatus,
+    updatedAt:  Date.now(),
+    createdAt:  editingId ? (invoices.find(i => i.id === editingId)?.createdAt || Date.now()) : Date.now(),
+  };
+}
+
+function saveInvoice(thenDo) {
+  const existing = editingId ? invoices.find(i => i.id === editingId) : null;
+  const inv = buildInvoiceObject(existing?.status || 'Pending');
+  if (editingId) {
+    const idx = invoices.findIndex(i => i.id === editingId);
+    if (idx !== -1) invoices[idx] = inv;
+    else invoices.unshift(inv);
+  } else {
+    invoices.unshift(inv);
+    editingId = inv.id;
+  }
+  saveInvoicesStore();
+  if (thenDo) thenDo(inv);
+}
+
+$('btn-save-invoice').addEventListener('click', () => {
+  saveInvoice(() => {
+    showToast('Invoice saved!');
+    setTimeout(() => showDashboard(), 600);
+  });
 });
 
+// ═══════════════════════════════════════════════════════════════
+//  PDF DOWNLOAD
+// ═══════════════════════════════════════════════════════════════
+$('btn-download').addEventListener('click', () => {
+  saveInvoice(() => {
+    const el = $('invoice-preview');
+    const num = val('f-inv-num') || 'invoice';
+    html2pdf().set({
+      margin: 0,
+      filename: `Apex-Terrain-${num}.pdf`,
+      image: { type:'jpeg', quality:0.97 },
+      html2canvas: { scale:2, useCORS:true, logging:false },
+      jsPDF: { unit:'px', format:[816,1056], orientation:'portrait' }
+    }).from(el).save();
+    showToast('PDF downloaded!');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  EMAIL MODAL
+// ═══════════════════════════════════════════════════════════════
 $('btn-send').addEventListener('click', () => {
   updatePreview();
-  $('email-modal-backdrop').classList.add('open');
+  $('email-modal').classList.add('open');
 });
-
 $('btn-modal-cancel').addEventListener('click', () => {
-  $('email-modal-backdrop').classList.remove('open');
+  $('email-modal').classList.remove('open');
   clearModalStatus();
 });
-
-$('email-modal-backdrop').addEventListener('click', e => {
-  if (e.target === $('email-modal-backdrop')) {
-    $('email-modal-backdrop').classList.remove('open');
-    clearModalStatus();
-  }
+$('email-modal').addEventListener('click', e => {
+  if (e.target === $('email-modal')) { $('email-modal').classList.remove('open'); clearModalStatus(); }
 });
 
 $('btn-modal-send').addEventListener('click', async () => {
   const s = getSettings();
   if (!s.ejService || !s.ejTemplate || !s.ejPubkey) {
-    showModalStatus('error', '⚠ EmailJS not configured. Open ⚙ Settings and add your Service ID, Template ID, and Public Key.');
+    showModalStatus('error', '⚠ EmailJS not configured. Open ⚙ Settings and add your credentials.');
     return;
   }
   const toEmail = $('m-email').value.trim();
-  if (!toEmail) { showModalStatus('error', 'Please enter a recipient email address.'); return; }
+  if (!toEmail) { showModalStatus('error', 'Please enter a recipient email.'); return; }
 
   const btn = $('btn-modal-send');
   btn.textContent = 'Sending…'; btn.disabled = true;
@@ -723,13 +1136,10 @@ $('btn-modal-send').addEventListener('click', async () => {
       invoice_due:    fmtDate(val('f-inv-due')) || '',
       reply_to:       s.email || '',
     });
+    saveInvoice(() => {});
     showModalStatus('success', '✓ Invoice sent successfully!');
-    setTimeout(() => {
-      $('email-modal-backdrop').classList.remove('open');
-      clearModalStatus();
-      showToast('Invoice sent to ' + toEmail);
-    }, 1800);
-  } catch (err) {
+    setTimeout(() => { $('email-modal').classList.remove('open'); clearModalStatus(); showToast('Invoice sent to ' + toEmail); }, 1800);
+  } catch(err) {
     showModalStatus('error', '✗ ' + (err.text || err.message || 'Send failed. Check your EmailJS settings.'));
   } finally {
     btn.textContent = 'Send Invoice'; btn.disabled = false;
@@ -744,77 +1154,133 @@ function showModalStatus(type, msg) {
 }
 function clearModalStatus() { $('m-status').style.display = 'none'; }
 
+// ═══════════════════════════════════════════════════════════════
+//  EMAIL HTML BUILDER
+// ═══════════════════════════════════════════════════════════════
 function buildEmailHtml() {
   const s = getSettings();
-  const rows = lineItems.map((item, i) => `
-    <tr style="background:${i%2===0?'#f9f9f9':'white'};">
-      <td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #eee;">${item.desc}</td>
-      <td style="padding:7px 12px;font-size:13px;text-align:center;border-bottom:1px solid #eee;">${item.qty}</td>
-      <td style="padding:7px 12px;font-size:13px;text-align:center;border-bottom:1px solid #eee;">${item.unit}</td>
-      <td style="padding:7px 12px;font-size:13px;text-align:right;border-bottom:1px solid #eee;">${fmt(item.rate)}</td>
-      <td style="padding:7px 12px;font-size:13px;text-align:right;border-bottom:1px solid #eee;">${fmt(item.qty*item.rate)}</td>
-    </tr>`).join('');
-
+  const rows = lineItems.map((item, i) => {
+    const desc = item.service === '__other' ? item.customDesc : item.service;
+    return `<tr style="background:${i%2===0?'#f9f9f9':'white'};"><td style="padding:7px 12px;font-size:13px;border-bottom:1px solid #eee;">${escHtml(desc)}</td><td style="padding:7px 12px;font-size:13px;text-align:center;border-bottom:1px solid #eee;">${item.qty}</td><td style="padding:7px 12px;font-size:13px;text-align:center;border-bottom:1px solid #eee;">${escHtml(item.unit)}</td><td style="padding:7px 12px;font-size:13px;text-align:right;border-bottom:1px solid #eee;">${fmt(item.rate)}</td><td style="padding:7px 12px;font-size:13px;text-align:right;border-bottom:1px solid #eee;">${fmt(item.qty*item.rate)}</td></tr>`;
+  }).join('');
   const msg = $('m-message').value;
-  return `
-<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#1a1a1a;">
-  ${msg ? `<p style="font-size:14px;line-height:1.7;margin-bottom:24px;">${msg.replace(/\n/g,'<br>')}</p>` : ''}
-  <div style="background:#3d3d3d;padding:20px 28px;">
-    <div style="color:white;font-size:13px;line-height:1.9;">
-      <div style="font-weight:600;">${s.name||'Apex Terrain Management'}</div>
-      ${s.street?`<div style="color:#ccc;">${s.street}</div>`:''}
-      ${s.city?`<div style="color:#ccc;">${s.city}</div>`:''}
-      ${s.phone?`<div style="color:#ccc;">${s.phone}</div>`:''}
-      ${s.email?`<div style="color:#6bb5ff;">${s.email}</div>`:''}
-    </div>
-  </div>
-  <div style="height:5px;background:#f28c28;"></div>
-  <div style="background:white;padding:24px 28px;">
-    <table style="width:100%;margin-bottom:24px;font-size:13px;line-height:1.9;">
-      <tr>
-        <td style="vertical-align:top;width:50%;"><strong>INVOICE TO</strong><br>${val('f-cust-name')}<br>${val('f-cust-street')}<br>${val('f-cust-city')}</td>
-        <td style="vertical-align:top;text-align:right;width:50%;"><strong>INVOICE#</strong> ${val('f-inv-num')}<br><strong>DATE</strong> ${fmtDate(val('f-inv-date'))}<br><strong>DUE DATE</strong> ${fmtDate(val('f-inv-due'))}<br><strong>TERMS</strong> ${val('f-inv-terms')}</td>
-      </tr>
-    </table>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-      <thead><tr style="background:#f28c28;color:white;">
-        <th style="text-align:left;padding:8px 12px;font-size:12px;">DESCRIPTION</th>
-        <th style="text-align:center;padding:8px 12px;font-size:12px;">QTY</th>
-        <th style="text-align:center;padding:8px 12px;font-size:12px;">UNIT</th>
-        <th style="text-align:right;padding:8px 12px;font-size:12px;">RATE</th>
-        <th style="text-align:right;padding:8px 12px;font-size:12px;">AMOUNT</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <table style="margin-left:auto;min-width:280px;border-collapse:collapse;font-size:13px;">
-      <tr><td style="font-weight:700;padding:4px 12px;text-align:right;">SUBTOTAL</td><td style="padding:4px 12px;text-align:right;">${$('p-subtotal').textContent}</td></tr>
-      <tr><td style="font-weight:700;padding:4px 12px;text-align:right;">DISCOUNT</td><td style="padding:4px 12px;text-align:right;">${$('p-discount').textContent}</td></tr>
-      <tr><td style="font-weight:700;padding:4px 12px;text-align:right;">GST</td><td style="padding:4px 12px;text-align:right;">${$('p-gst').textContent}</td></tr>
-      <tr><td style="font-weight:700;padding:4px 12px;text-align:right;">TOTAL</td><td style="padding:4px 12px;text-align:right;">${$('p-total').textContent}</td></tr>
-      <tr style="border-top:2px solid #1a1a1a;">
-        <td style="font-weight:700;padding:10px 12px;text-align:right;font-size:15px;">BALANCE DUE</td>
-        <td style="font-weight:700;padding:10px 12px;text-align:right;font-size:15px;">${$('p-balance').textContent}</td>
-      </tr>
-    </table>
-    ${val('f-notes')?`<div style="margin-top:20px;font-size:12px;color:#555;line-height:1.7;border-top:1px solid #eee;padding-top:16px;">${val('f-notes').replace(/\n/g,'<br>')}</div>`:''}
-  </div>
-  <div style="border-top:1px solid #ddd;padding:12px 28px;font-size:11px;color:#999;text-align:center;">
-    GST Reg #: ${s.gst||''} &nbsp;|&nbsp; This invoice is brought to you by Apex Terrain Management Ltd.
-  </div>
-</div>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#1a1a1a;">${msg?`<p style="font-size:14px;line-height:1.7;margin-bottom:24px;">${msg.replace(/\n/g,'<br>')}</p>`:''}<div style="background:#3d3d3d;padding:20px 28px;"><div style="color:white;font-size:13px;line-height:1.9;"><div style="font-weight:600;">${s.name||'Apex Terrain'}</div>${s.street?`<div style="color:#ccc;">${s.street}</div>`:''}<div style="color:#ccc;">${s.city||''}</div>${s.phone?`<div style="color:#ccc;">${s.phone}</div>`:''}</div></div><div style="height:5px;background:#f28c28;"></div><div style="background:white;padding:24px 28px;"><table style="width:100%;margin-bottom:20px;font-size:13px;line-height:1.9;"><tr><td style="vertical-align:top;width:50%;"><strong>INVOICE TO</strong><br>${val('f-cust-name')}<br>${val('f-cust-street')}<br>${val('f-cust-city')}</td><td style="vertical-align:top;text-align:right;"><strong>INVOICE#</strong> ${val('f-inv-num')}<br><strong>DATE</strong> ${fmtDate(val('f-inv-date'))}<br><strong>DUE DATE</strong> ${fmtDate(val('f-inv-due'))}<br><strong>TERMS</strong> ${val('f-inv-terms')}</td></tr></table><table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><thead><tr style="background:#f28c28;color:white;"><th style="text-align:left;padding:8px 12px;font-size:12px;">DESCRIPTION</th><th style="text-align:center;padding:8px 12px;font-size:12px;">QTY</th><th style="text-align:center;padding:8px 12px;font-size:12px;">UNIT</th><th style="text-align:right;padding:8px 12px;font-size:12px;">RATE</th><th style="text-align:right;padding:8px 12px;font-size:12px;">AMOUNT</th></tr></thead><tbody>${rows}</tbody></table><table style="margin-left:auto;min-width:260px;border-collapse:collapse;font-size:13px;"><tr><td style="font-weight:700;padding:4px 12px;text-align:right;">SUBTOTAL</td><td style="padding:4px 12px;text-align:right;">${$('p-subtotal').textContent}</td></tr><tr><td style="font-weight:700;padding:4px 12px;text-align:right;">DISCOUNT</td><td style="padding:4px 12px;text-align:right;">${$('p-discount').textContent}</td></tr><tr><td style="font-weight:700;padding:4px 12px;text-align:right;">GST</td><td style="padding:4px 12px;text-align:right;">${$('p-gst').textContent}</td></tr><tr><td style="font-weight:700;padding:4px 12px;text-align:right;">TOTAL</td><td style="padding:4px 12px;text-align:right;">${$('p-total').textContent}</td></tr><tr style="border-top:2px solid #1a1a1a;"><td style="font-weight:700;padding:10px 12px;text-align:right;font-size:15px;">BALANCE DUE</td><td style="font-weight:700;padding:10px 12px;text-align:right;font-size:15px;">${$('p-balance').textContent}</td></tr></table></div><div style="border-top:1px solid #ddd;padding:12px 28px;font-size:11px;color:#999;text-align:center;">GST Reg #: ${s.gst||''} | Apex Terrain Management Ltd.</div></div>`;
 }
 
-// Init
-const today = new Date().toISOString().split('T')[0];
-$('f-inv-date').value = today;
-const due = new Date(); due.setDate(due.getDate() + 30);
-$('f-inv-due').value = due.toISOString().split('T')[0];
-$('f-inv-num').value = 'INV-001';
-$('f-inv-terms').value = 'Net 30';
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  // Stats
+  const pending = invoices.filter(i => i.status === 'Pending');
+  const won     = invoices.filter(i => i.status === 'Won');
+  const lost    = invoices.filter(i => i.status === 'Lost');
+  setText('stat-total',   String(invoices.length));
+  setText('stat-pending', fmtMoney(pending.reduce((s,i) => s + (i.total||0), 0)));
+  setText('stat-won',     fmtMoney(won.reduce((s,i) => s + (i.total||0), 0)));
+  setText('stat-lost',    fmtMoney(lost.reduce((s,i) => s + (i.total||0), 0)));
 
+  renderTable(invoices);
+}
+
+function renderTable(data) {
+  const tbody = $('invoice-table-body');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = `<tr id="empty-row"><td colspan="6"><div class="inv-empty"><div class="inv-empty-icon">📄</div><p>No invoices yet.<br>Click <strong>+ New Invoice</strong> to get started.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(inv => {
+    const statusCls = 'status-' + (inv.status || 'Pending');
+    return `
+    <tr data-id="${inv.id}">
+      <td data-label="Invoice #"><span class="inv-number">${escHtml(inv.number||'—')}</span></td>
+      <td data-label="Date">${fmtDate(inv.date) || '—'}</td>
+      <td data-label="Customer"><span class="inv-customer">${escHtml(inv.customer?.name||'—')}</span></td>
+      <td data-label="Amount"><span class="inv-total">${fmtMoney(inv.total||0)}</span></td>
+      <td data-label="Status">
+        <select class="status-select ${statusCls}" data-id="${inv.id}" onchange="onStatusChange(this)">
+          <option value="Pending" ${inv.status==='Pending'?'selected':''}>Pending</option>
+          <option value="Won"     ${inv.status==='Won'?'selected':''}>Won</option>
+          <option value="Lost"    ${inv.status==='Lost'?'selected':''}>Lost</option>
+        </select>
+      </td>
+      <td class="no-label">
+        <div class="row-actions">
+          <button class="btn btn-outline btn-sm btn-icon" onclick="editInvoice('${inv.id}')" title="Edit">✏</button>
+          <button class="btn btn-sm btn-icon" style="color:var(--red);border:1.5px solid #fca5a5;background:transparent;" onclick="confirmDelete('${inv.id}')" title="Delete">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function onStatusChange(sel) {
+  const id = sel.dataset.id;
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  inv.status = sel.value;
+  inv.updatedAt = Date.now();
+  saveInvoicesStore();
+  // Re-color the select
+  sel.className = 'status-select status-' + sel.value;
+  // Update stats
+  const pending = invoices.filter(i => i.status === 'Pending');
+  const won     = invoices.filter(i => i.status === 'Won');
+  const lost    = invoices.filter(i => i.status === 'Lost');
+  setText('stat-pending', fmtMoney(pending.reduce((s,i) => s + (i.total||0), 0)));
+  setText('stat-won',     fmtMoney(won.reduce((s,i) => s + (i.total||0), 0)));
+  setText('stat-lost',    fmtMoney(lost.reduce((s,i) => s + (i.total||0), 0)));
+  showToast('Status updated to ' + sel.value);
+}
+
+function editInvoice(id) {
+  const inv = invoices.find(i => i.id === id);
+  if (inv) showEditor(inv);
+}
+
+// Search
+$('dash-search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  const filtered = q ? invoices.filter(i =>
+    (i.number||'').toLowerCase().includes(q) ||
+    (i.customer?.name||'').toLowerCase().includes(q)
+  ) : invoices;
+  renderTable(filtered);
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIRM DELETE
+// ═══════════════════════════════════════════════════════════════
+let pendingDeleteId = null;
+
+function confirmDelete(id) {
+  const inv = invoices.find(i => i.id === id);
+  pendingDeleteId = id;
+  $('confirm-msg').innerHTML = `Delete invoice <strong>${escHtml(inv?.number||id)}</strong> for <strong>${escHtml(inv?.customer?.name||'this customer')}</strong>? This cannot be undone.`;
+  $('confirm-backdrop').classList.add('open');
+}
+$('confirm-no').addEventListener('click', () => {
+  $('confirm-backdrop').classList.remove('open');
+  pendingDeleteId = null;
+});
+$('confirm-yes').addEventListener('click', () => {
+  if (pendingDeleteId) {
+    invoices = invoices.filter(i => i.id !== pendingDeleteId);
+    saveInvoicesStore();
+    pendingDeleteId = null;
+    $('confirm-backdrop').classList.remove('open');
+    renderDashboard();
+    showToast('Invoice deleted.');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+loadInvoices();
 loadSettings();
-renderFormItems();
-updatePreview();
+repositionSettings();
+showDashboard();
 </script>
 </body>
 </html>
