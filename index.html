@@ -1476,17 +1476,46 @@ async function fetchSheetInvoices(){
     const r=await fetch(url+'?tab=invoices');
     const data=await r.json();
     if(!Array.isArray(data.rows))return;
+    let imported=0;
     for(const row of data.rows){
+      if(!row.id)continue;
       const inv=invoices.find(i=>i.id===row.id);
-      if(!inv)continue;
-      const currentLabel=computeBadge(inv).label;
-      const sheetLabel=String(row.status||'').trim();
-      if(sheetLabel && sheetLabel!==currentLabel){
-        const fields=statusLabelToFields(sheetLabel);
-        invCol.doc(row.id).update({...fields,updatedAt:Date.now()}).catch(()=>{});
+      if(!inv){
+        // Row exists in sheet but not Firebase — import it
+        const fields=statusLabelToFields(String(row.status||'').trim());
+        const now=Date.now();
+        const newInv={
+          id:row.id,
+          number:row.id,
+          date:row.date||'',
+          dueDate:'',
+          terms:'Net 30',
+          serviceCity:'',
+          projectStatus:fields.projectStatus,
+          paymentStatus:fields.paymentStatus,
+          jobCompleted:fields.jobCompleted,
+          customer:{name:row.name||'',street:row.address||'',city:'',email:''},
+          lineItems:[],
+          notes:'Imported from Google Sheets',
+          discount:0,gstRate:5,
+          subtotal:Number(row.total)||0,gst:0,
+          total:Number(row.total)||0,
+          createdAt:now,updatedAt:now
+        };
+        invCol.doc(row.id).set(newInv).catch(()=>{});
+        imported++;
+      } else {
+        // Row already in Firebase — reconcile status if sheet differs
+        const currentLabel=computeBadge(inv).label;
+        const sheetLabel=String(row.status||'').trim();
+        if(sheetLabel && sheetLabel!==currentLabel){
+          const fields=statusLabelToFields(sheetLabel);
+          invCol.doc(row.id).update({...fields,updatedAt:Date.now()}).catch(()=>{});
+        }
       }
     }
-  }catch{}
+    if(imported>0)toast(`Imported ${imported} invoice${imported!==1?'s':''} from Sheets`);
+  }catch(e){console.error('Sheet fetch failed',e);}
 }
 
 // GET Form Submissions tab → populate formSubmissions cache
