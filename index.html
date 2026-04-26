@@ -7,6 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -601,6 +603,23 @@ const SERVICE_CATALOG = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+//  FIREBASE INIT
+// ═══════════════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyCew7H3p0WR_JxbMEaCUyTh3e3LFyP27Hk",
+  authDomain:        "apex-invoice-8c872.firebaseapp.com",
+  projectId:         "apex-invoice-8c872",
+  storageBucket:     "apex-invoice-8c872.firebasestorage.app",
+  messagingSenderId: "340911188880",
+  appId:             "1:340911188880:web:f57772010c891846982115",
+};
+const fbApp  = firebase.initializeApp(firebaseConfig);
+const db     = firebase.firestore();
+const invCol = db.collection('invoices');
+// Offline persistence — works even without internet, syncs when back online
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+// ═══════════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════════
 let invoices   = [];
@@ -634,14 +653,10 @@ function escHtml(s) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  STORAGE
+//  STORAGE  (Firestore — real-time across all devices)
 // ═══════════════════════════════════════════════════════════════
-function loadInvoices() {
-  invoices = JSON.parse(localStorage.getItem('apex-invoices') || '[]');
-}
-function saveInvoicesStore() {
-  localStorage.setItem('apex-invoices', JSON.stringify(invoices));
-}
+function loadInvoices() { /* replaced by startSync() onSnapshot */ }
+function saveInvoicesStore() { /* replaced by Firestore writes */ }
 const EJ_DEFAULTS = {
   ejService:  'service_dod1yfs',
   ejTemplate: 'template_o2by2hk',
@@ -1062,18 +1077,15 @@ function buildInvoiceObject(existingStatus = 'Pending') {
   };
 }
 
-function saveInvoice(thenDo) {
+async function saveInvoice(thenDo) {
   const existing = editingId ? invoices.find(i => i.id === editingId) : null;
   const inv = buildInvoiceObject(existing?.status || 'Pending');
-  if (editingId) {
-    const idx = invoices.findIndex(i => i.id === editingId);
-    if (idx !== -1) invoices[idx] = inv;
-    else invoices.unshift(inv);
-  } else {
-    invoices.unshift(inv);
-    editingId = inv.id;
+  if (!editingId) editingId = inv.id;
+  try {
+    await invCol.doc(inv.id).set(inv);
+  } catch(e) {
+    showToast('Cloud save failed — check connection', false);
   }
-  saveInvoicesStore();
   if (thenDo) thenDo(inv);
 }
 
@@ -1223,20 +1235,11 @@ function renderTable(data) {
 
 function onStatusChange(sel) {
   const id = sel.dataset.id;
-  const inv = invoices.find(i => i.id === id);
-  if (!inv) return;
-  inv.status = sel.value;
-  inv.updatedAt = Date.now();
-  saveInvoicesStore();
-  // Re-color the select
+  // Optimistic UI — recolor immediately
   sel.className = 'status-select status-' + sel.value;
-  // Update stats
-  const pending = invoices.filter(i => i.status === 'Pending');
-  const won     = invoices.filter(i => i.status === 'Won');
-  const lost    = invoices.filter(i => i.status === 'Lost');
-  setText('stat-pending', fmtMoney(pending.reduce((s,i) => s + (i.total||0), 0)));
-  setText('stat-won',     fmtMoney(won.reduce((s,i) => s + (i.total||0), 0)));
-  setText('stat-lost',    fmtMoney(lost.reduce((s,i) => s + (i.total||0), 0)));
+  // Write to Firestore — onSnapshot will re-render stats automatically
+  invCol.doc(id).update({ status: sel.value, updatedAt: Date.now() })
+    .catch(() => showToast('Status update failed', false));
   showToast('Status updated to ' + sel.value);
 }
 
@@ -1270,24 +1273,55 @@ $('confirm-no').addEventListener('click', () => {
   $('confirm-backdrop').classList.remove('open');
   pendingDeleteId = null;
 });
-$('confirm-yes').addEventListener('click', () => {
+$('confirm-yes').addEventListener('click', async () => {
   if (pendingDeleteId) {
-    invoices = invoices.filter(i => i.id !== pendingDeleteId);
-    saveInvoicesStore();
+    const id = pendingDeleteId;
     pendingDeleteId = null;
     $('confirm-backdrop').classList.remove('open');
-    renderDashboard();
-    showToast('Invoice deleted.');
+    try {
+      await invCol.doc(id).delete();
+      // onSnapshot will re-render the table automatically
+      showToast('Invoice deleted.');
+    } catch(e) {
+      showToast('Delete failed — check connection', false);
+    }
   }
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  REAL-TIME SYNC
+// ═══════════════════════════════════════════════════════════════
+function startSync() {
+  // Show loading state until first snapshot arrives
+  $('invoice-table-body').innerHTML = `<tr><td colspan="6"><div class="inv-empty"><div style="font-size:24px;margin-bottom:8px;">☁</div><p>Connecting to cloud…</p></div></td></tr>`;
+
+  invCol.onSnapshot(snapshot => {
+    invoices = snapshot.docs.map(doc => doc.data());
+    invoices.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    renderDashboard();
+
+    // Re-apply active search filter if any
+    const q = $('dash-search').value.toLowerCase();
+    if (q) {
+      renderTable(invoices.filter(i =>
+        (i.number||'').toLowerCase().includes(q) ||
+        (i.customer?.name||'').toLowerCase().includes(q)
+      ));
+    }
+  }, err => {
+    console.error('Firestore sync error:', err);
+    showToast('Cloud sync error — check connection', false);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════
-loadInvoices();
 loadSettings();
 repositionSettings();
 showDashboard();
+startSync();
 </script>
 </body>
 </html>
