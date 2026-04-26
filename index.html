@@ -262,7 +262,7 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
           <div class="sum-cnt" id="c-quotes">0 quotes</div>
         </div>
         <div class="sum-card c-won">
-          <div class="sum-lbl">🔵 Paid: 50%</div>
+          <div class="sum-lbl">🔵 Scheduled</div>
           <div class="sum-val" id="s-active">$0</div>
           <div class="sum-cnt" id="c-active">0 jobs</div>
         </div>
@@ -418,7 +418,7 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
           <select id="f-status-label" class="ed-field" onchange="updateEditorBadge()">
             <option value="Pending">🟡  Pending — Quote Sent</option>
             <option value="Deposit Owing">🟠  Deposit Owing</option>
-            <option value="Paid: 50%">🔵  Paid: 50% — Deposit Received</option>
+            <option value="Scheduled">🔵  Scheduled — Deposit Received</option>
             <option value="Balance Owing">🔴  Balance Owing — Job Done</option>
             <option value="Paid">🟢  Paid — Fully Settled</option>
             <option value="Lost">⚫  Lost</option>
@@ -599,7 +599,7 @@ function computeBadge(inv){
   if(proj==='Quote') return{label:'Pending',   cls:'s-pending'};
   if(pay==='Fully Paid') return{label:'Paid',  cls:'s-paid'};
   if(done||pay==='Balance Owing') return{label:'Balance Owing',cls:'s-balance'};
-  if(pay==='Deposit Paid') return{label:'Paid: 50%',cls:'s-scheduled'};
+  if(pay==='Deposit Paid') return{label:'Scheduled',cls:'s-scheduled'};
   return{label:'Deposit Owing',cls:'s-deposit'};
 }
 
@@ -668,7 +668,7 @@ function renderHome(){
   const sum=arr=>arr.reduce((s,i)=>s+(i.total||0),0);
   const getBadge=i=>computeBadge(i).label;
   const quotes  =invoices.filter(i=>getBadge(i)==='Pending');
-  const active  =invoices.filter(i=>['Deposit Owing','Paid: 50%'].includes(getBadge(i)));
+  const active  =invoices.filter(i=>['Deposit Owing','Scheduled'].includes(getBadge(i)));
   const balance =invoices.filter(i=>getBadge(i)==='Balance Owing');
   const paid    =invoices.filter(i=>getBadge(i)==='Paid');
 
@@ -773,7 +773,7 @@ function getQuickActions(inv){
       {id:'dep-paid', label:'💳  Deposit Received',            style:'btn-orange'},
       {id:'lost',     label:'✗  Mark as Lost'}
     ];
-    case 'Paid: 50%': return [
+    case 'Scheduled': return [
       {id:'job-done', label:'🏁  Job Completed — Request Balance', style:'btn-orange'},
       {id:'lost',     label:'✗  Cancel / Mark Lost'}
     ];
@@ -954,7 +954,7 @@ function calcTotals(){
 function statusLabelToFields(label){
   switch(label){
     case 'Deposit Owing': return{projectStatus:'Won',  paymentStatus:'Deposit Owing', jobCompleted:false};
-    case 'Paid: 50%':     return{projectStatus:'Won',  paymentStatus:'Deposit Paid',  jobCompleted:false};
+    case 'Scheduled':     return{projectStatus:'Won',  paymentStatus:'Deposit Paid',  jobCompleted:false};
     case 'Balance Owing': return{projectStatus:'Won',  paymentStatus:'Balance Owing', jobCompleted:true};
     case 'Paid':          return{projectStatus:'Won',  paymentStatus:'Fully Paid',    jobCompleted:true};
     case 'Lost':          return{projectStatus:'Lost', paymentStatus:'None',          jobCompleted:false};
