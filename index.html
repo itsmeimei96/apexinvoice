@@ -78,14 +78,18 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);font
 select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23555' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
 .label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:5px;}
 
-/* Status */
+/* Status Badges */
 .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.04em;}
-.s-owing,.s-pending{background:var(--amber-bg);color:var(--amber);}
-.s-won{background:var(--blue-bg);color:var(--blue);}
-.s-paid{background:var(--green-bg);color:var(--green);}
-.s-lost{background:var(--red-bg);color:var(--red);}
+.s-pending  {background:rgba(245,158,11,.16);color:#f59e0b;}
+.s-deposit  {background:rgba(242,140,40,.18);color:#f28c28;}
+.s-scheduled{background:rgba(96,165,250,.16);color:#60a5fa;}
+.s-balance  {background:rgba(248,113,113,.16);color:#f87171;}
+.s-paid     {background:rgba(34,197,94,.16);color:#22c55e;}
+.s-lost-g   {background:rgba(120,120,120,.15);color:#888;}
 
-.status-sel{border:none;border-radius:20px;padding:5px 26px 5px 10px;font-size:11px;font-weight:700;cursor:pointer;outline:none;appearance:none;font-family:'Roboto',sans-serif;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23777' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;}
+.badge-btn{border:none;cursor:pointer;padding:0;background:none;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;gap:3px;}
+.badge-btn:active .badge{opacity:.7;}
+.badge-chevron{font-size:11px;color:var(--text3);}
 
 /* Empty state */
 .empty{text-align:center;padding:40px 20px;color:var(--text3);}
@@ -253,24 +257,24 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
     <div id="pane-home" class="tab-pane active">
       <div class="sum-grid">
         <div class="sum-card c-owing">
-          <div class="sum-lbl">Owing</div>
-          <div class="sum-val" id="s-owing">$0</div>
-          <div class="sum-cnt" id="c-owing">0 invoices</div>
+          <div class="sum-lbl">Quotes</div>
+          <div class="sum-val" id="s-quotes">$0</div>
+          <div class="sum-cnt" id="c-quotes">0 pending</div>
+        </div>
+        <div class="sum-card c-won">
+          <div class="sum-lbl">Active Jobs</div>
+          <div class="sum-val" id="s-active">$0</div>
+          <div class="sum-cnt" id="c-active">0 jobs</div>
+        </div>
+        <div class="sum-card c-lost">
+          <div class="sum-lbl">Balance Owing</div>
+          <div class="sum-val" id="s-balance">$0</div>
+          <div class="sum-cnt" id="c-balance">0 invoices</div>
         </div>
         <div class="sum-card c-paid">
           <div class="sum-lbl">Paid</div>
           <div class="sum-val" id="s-paid">$0</div>
           <div class="sum-cnt" id="c-paid">0 invoices</div>
-        </div>
-        <div class="sum-card c-won">
-          <div class="sum-lbl">Won</div>
-          <div class="sum-val" id="s-won">$0</div>
-          <div class="sum-cnt" id="c-won">0 jobs</div>
-        </div>
-        <div class="sum-card c-lost">
-          <div class="sum-lbl">Lost</div>
-          <div class="sum-val" id="s-lost">$0</div>
-          <div class="sum-cnt" id="c-lost">0 quotes</div>
         </div>
       </div>
 
@@ -410,15 +414,34 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
       <div class="form-row2">
         <div class="form-grp"><label class="label">Terms</label><input id="f-terms" class="ed-field" type="text" placeholder="Net 30"></div>
         <div class="form-grp">
-          <label class="label">Status</label>
-          <select id="f-status" class="ed-field">
-            <option value="Owing">Owing</option>
+          <label class="label">Project Status</label>
+          <select id="f-proj-status" class="ed-field" onchange="updateEditorBadge()">
+            <option value="Quote">Quote</option>
             <option value="Won">Won</option>
-            <option value="Paid">Paid</option>
             <option value="Lost">Lost</option>
           </select>
         </div>
       </div>
+      <div class="form-row2">
+        <div class="form-grp">
+          <label class="label">Payment Status</label>
+          <select id="f-pay-status" class="ed-field" onchange="updateEditorBadge()">
+            <option value="None">— None</option>
+            <option value="Deposit Owing">Deposit Owing</option>
+            <option value="Deposit Paid">Deposit Paid</option>
+            <option value="Balance Owing">Balance Owing</option>
+            <option value="Fully Paid">Fully Paid</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label class="label">Job Completed</label>
+          <select id="f-job-done" class="ed-field" onchange="updateEditorBadge()">
+            <option value="0">No</option>
+            <option value="1">Yes — Job Done</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding:2px 0 6px;" id="ed-badge-preview"></div>
       <div class="form-row2">
         <div class="form-grp"><label class="label">Discount ($)</label><input id="f-disc" class="ed-field" type="number" value="0" min="0" step="0.01"></div>
         <div class="form-grp"><label class="label">GST Rate (%)</label><input id="f-gst" class="ed-field" type="number" value="5" min="0" max="100" step="0.1"></div>
@@ -500,6 +523,22 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
   </div>
 </div>
 
+<!-- Quick Action Sheet -->
+<div id="qa-bg" class="sheet-bg" onclick="closeQA(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <div style="flex:1;">
+        <div style="font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:.04em;" id="qa-inv-num"></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="qa-inv-cust"></div>
+      </div>
+      <div id="qa-cur-badge"></div>
+    </div>
+    <div id="qa-actions" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <button class="btn btn-surface btn-full" style="margin-top:12px;" onclick="closeQA()">Cancel</button>
+  </div>
+</div>
+
 <!-- Confirm Dialog -->
 <div id="confirm-bg">
   <div id="confirm-box">
@@ -566,8 +605,18 @@ const fmt=n=>'$'+Math.abs(n).toFixed(2);
 const fmtM=n=>'$'+Number(n).toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtD=s=>{if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-CA',{year:'numeric',month:'short',day:'numeric'});};
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const isOwing=s=>s==='Owing'||s==='Pending';
-const statusCls=s=>{if(isOwing(s))return's-owing';if(s==='Won')return's-won';if(s==='Paid')return's-paid';if(s==='Lost')return's-lost';return's-owing';};
+function computeBadge(inv){
+  // Legacy support for old single-status invoices
+  const proj=inv.projectStatus||(inv.status==='Lost'?'Lost':inv.status==='Paid'||inv.status==='Won'?'Won':'Quote');
+  const pay=inv.paymentStatus||(inv.status==='Paid'?'Fully Paid':inv.status==='Won'?'Deposit Owing':'None');
+  const done=inv.jobCompleted||false;
+  if(proj==='Lost') return{label:'Lost',       cls:'s-lost-g'};
+  if(proj==='Quote') return{label:'Pending',   cls:'s-pending'};
+  if(pay==='Fully Paid') return{label:'Paid',  cls:'s-paid'};
+  if(done||pay==='Balance Owing') return{label:'Balance Owing',cls:'s-balance'};
+  if(pay==='Deposit Paid') return{label:'Scheduled',cls:'s-scheduled'};
+  return{label:'Deposit Owing',cls:'s-deposit'};
+}
 
 function toast(msg,ok=true){
   const t=$('toast');t.textContent=msg;
@@ -630,23 +679,22 @@ function switchTab(tab){
 //  HOME TAB
 // ═══════════════════════════════════════════════════════════════
 function renderHome(){
-  const owing=invoices.filter(i=>isOwing(i.status));
-  const won  =invoices.filter(i=>i.status==='Won');
-  const paid =invoices.filter(i=>i.status==='Paid');
-  const lost =invoices.filter(i=>i.status==='Lost');
-  const sum  =arr=>arr.reduce((s,i)=>s+(i.total||0),0);
+  const sum=arr=>arr.reduce((s,i)=>s+(i.total||0),0);
+  const quotes  =invoices.filter(i=>computeBadge(i).label==='Pending');
+  const active  =invoices.filter(i=>['Deposit Owing','Scheduled'].includes(computeBadge(i).label));
+  const balance =invoices.filter(i=>computeBadge(i).label==='Balance Owing');
+  const paid    =invoices.filter(i=>computeBadge(i).label==='Paid');
 
-  setText('s-owing',fmtM(sum(owing)));setText('c-owing',`${owing.length} invoice${owing.length!==1?'s':''}`);
-  setText('s-paid', fmtM(sum(paid)));  setText('c-paid', `${paid.length} invoice${paid.length!==1?'s':''}`);
-  setText('s-won',  fmtM(sum(won)));   setText('c-won',  `${won.length} job${won.length!==1?'s':''}`);
-  setText('s-lost', fmtM(sum(lost)));  setText('c-lost', `${lost.length} quote${lost.length!==1?'s':''}`);
+  setText('s-quotes', fmtM(sum(quotes)));  setText('c-quotes', `${quotes.length} pending`);
+  setText('s-active', fmtM(sum(active)));  setText('c-active', `${active.length} job${active.length!==1?'s':''}`);
+  setText('s-balance',fmtM(sum(balance))); setText('c-balance',`${balance.length} invoice${balance.length!==1?'s':''}`);
+  setText('s-paid',   fmtM(sum(paid)));    setText('c-paid',   `${paid.length} invoice${paid.length!==1?'s':''}`);
 
-  // Needs attention: owing or won, no update in 10+ days
   const now=Date.now();
   const flagged=invoices.filter(i=>{
-    if(!isOwing(i.status)&&i.status!=='Won') return false;
-    const last=i.updatedAt||i.createdAt||0;
-    return (now-last)>TEN_DAYS;
+    const b=computeBadge(i).label;
+    if(!['Pending','Deposit Owing','Balance Owing'].includes(b)) return false;
+    return (now-(i.updatedAt||i.createdAt||0))>TEN_DAYS;
   });
 
   const el=$('alerts-list');
@@ -658,14 +706,15 @@ function renderHome(){
     return;
   }
   el.innerHTML=flagged.map(inv=>{
+    const b=computeBadge(inv);
     const days=Math.floor((now-(inv.updatedAt||inv.createdAt||now))/86400000);
     return `<div class="alert-card">
       <div class="alert-ico">⚠️</div>
       <div class="alert-body">
-        <div class="alert-title">Follow-up Required: ${esc(inv.customer?.name||'Unknown')}</div>
-        <div class="alert-sub">${esc(inv.number||'')} · ${inv.status} · ${days} days with no update</div>
+        <div class="alert-title">Follow-up: ${esc(inv.customer?.name||'Unknown')}</div>
+        <div class="alert-sub">${esc(inv.number||'')} · ${b.label} · ${days} days</div>
       </div>
-      <button class="alert-btn" onclick="openEditor(invoices.find(i=>i.id==='${inv.id}'))">View →</button>
+      <button class="alert-btn" onclick="openQA('${inv.id}')">Action →</button>
     </div>`;
   }).join('');
 }
@@ -679,8 +728,9 @@ function renderInvoiceList(data){
     el.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><p>No invoices yet.<br>Tap <strong>+</strong> to create your first one.</p></div>`;
     return;
   }
-  el.innerHTML=data.map(inv=>`
-    <div class="inv-card" onclick="openEditor(invoices.find(i=>i.id==='${inv.id}'))">
+  el.innerHTML=data.map(inv=>{
+    const b=computeBadge(inv);
+    return `<div class="inv-card" onclick="openEditor(invoices.find(i=>i.id==='${inv.id}'))">
       <div class="ic-row1">
         <span class="ic-num">${esc(inv.number||'—')}</span>
         <span class="ic-amt">${fmtM(inv.total||0)}</span>
@@ -689,16 +739,15 @@ function renderInvoiceList(data){
       <div class="ic-row2">
         <span class="ic-date">${fmtD(inv.date)||'—'}${inv.serviceCity?` · ${esc(inv.serviceCity)}`:''}</span>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select class="status-sel ${statusCls(inv.status)}" onclick="event.stopPropagation()" onchange="updateStatus('${inv.id}',this)">
-            <option value="Owing"  ${isOwing(inv.status)?'selected':''}>Owing</option>
-            <option value="Won"    ${inv.status==='Won'?'selected':''}>Won</option>
-            <option value="Paid"   ${inv.status==='Paid'?'selected':''}>Paid</option>
-            <option value="Lost"   ${inv.status==='Lost'?'selected':''}>Lost</option>
-          </select>
+          <button class="badge-btn" onclick="event.stopPropagation();openQA('${inv.id}')">
+            <span class="badge ${b.cls}">${b.label}</span>
+            <span class="badge-chevron">›</span>
+          </button>
           <button style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:4px;" onclick="event.stopPropagation();deleteItem('${inv.id}','invoice')" title="Delete">🗑</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function filterInvoices(q){
@@ -707,11 +756,66 @@ function filterInvoices(q){
   renderInvoiceList(data);
 }
 
-function updateStatus(id,sel){
-  sel.className=`status-sel ${statusCls(sel.value)}`;
-  invCol.doc(id).update({status:sel.value,updatedAt:Date.now()})
-    .then(()=>toast('Status → '+sel.value))
-    .catch(()=>toast('Update failed',false));
+// ── QUICK ACTIONS ─────────────────────────────────────────────
+let qaInvId=null;
+
+function openQA(id){
+  qaInvId=id;
+  const inv=invoices.find(i=>i.id===id);
+  if(!inv)return;
+  const b=computeBadge(inv);
+  $('qa-inv-num').textContent=inv.number||'Invoice';
+  $('qa-inv-cust').textContent=inv.customer?.name||'';
+  $('qa-cur-badge').innerHTML=`<span class="badge ${b.cls}">${b.label}</span>`;
+  const actions=getQuickActions(inv);
+  $('qa-actions').innerHTML=actions.length
+    ?actions.map(a=>`<button class="btn btn-full ${a.style||'btn-surface'}" style="justify-content:flex-start;font-size:14px;padding:13px 16px;" onclick="qaAction('${a.id}')">${a.label}</button>`).join('')
+    :`<p style="text-align:center;color:var(--text3);font-size:13px;padding:10px 0;">No further actions — invoice is closed.</p>`;
+  $('qa-bg').classList.add('open');
+}
+function closeQA(e){if(!e||e.target===$('qa-bg'))$('qa-bg').classList.remove('open');}
+
+function getQuickActions(inv){
+  const b=computeBadge(inv);
+  switch(b.label){
+    case 'Pending': return [
+      {id:'won',      label:'✅  Customer Said Yes — Won',     style:'btn-orange'},
+      {id:'lost',     label:'✗  Mark as Lost'}
+    ];
+    case 'Deposit Owing': return [
+      {id:'dep-paid', label:'💳  Deposit Received',            style:'btn-orange'},
+      {id:'lost',     label:'✗  Mark as Lost'}
+    ];
+    case 'Scheduled': return [
+      {id:'job-done', label:'🏁  Job Completed — Request Balance', style:'btn-orange'},
+      {id:'lost',     label:'✗  Cancel / Mark Lost'}
+    ];
+    case 'Balance Owing': return [
+      {id:'bal-paid', label:'💰  Balance Received — Fully Paid', style:'btn-orange'}
+    ];
+    case 'Paid': return [];
+    case 'Lost': return [
+      {id:'reopen',   label:'↩  Reopen as Quote'}
+    ];
+  }
+  return[];
+}
+
+async function qaAction(actionId){
+  if(!qaInvId)return;
+  const updates={updatedAt:Date.now()};
+  switch(actionId){
+    case 'won':      updates.projectStatus='Won';  updates.paymentStatus='Deposit Owing'; updates.jobCompleted=false; break;
+    case 'dep-paid': updates.paymentStatus='Deposit Paid'; break;
+    case 'job-done': updates.jobCompleted=true;    updates.paymentStatus='Balance Owing'; break;
+    case 'bal-paid': updates.paymentStatus='Fully Paid'; break;
+    case 'lost':     updates.projectStatus='Lost'; break;
+    case 'reopen':   updates.projectStatus='Quote'; updates.paymentStatus='None'; updates.jobCompleted=false; break;
+  }
+  $('qa-bg').classList.remove('open');
+  try{await invCol.doc(qaInvId).update(updates);toast('Updated!');}
+  catch(e){toast('Update failed',false);}
+  qaInvId=null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -736,8 +840,10 @@ function resetForm(){
   $('f-name').value='';$('f-street').value='';$('f-city').value='';$('f-email').value='';
   $('f-num').value=nextNum();$('f-scity').value='';
   $('f-date').value=today;$('f-due').value=due.toISOString().split('T')[0];
-  $('f-terms').value='Net 30';$('f-status').value='Owing';
+  $('f-terms').value='Net 30';
+  $('f-proj-status').value='Quote';$('f-pay-status').value='None';$('f-job-done').value='0';
   $('f-disc').value='0';$('f-gst').value='5';$('f-notes').value='';
+  updateEditorBadge();
   lineItems=[
     {service:'Minimum Service Fee (3 hours)',customDesc:'',qty:3,unit:'Hours',rate:250},
     {service:'Minimum Travel Fee',customDesc:'',qty:1,unit:'Trips',rate:100}
@@ -753,8 +859,13 @@ function loadInv(inv){
   $('f-date').value=inv.date||'';
   $('f-due').value=inv.dueDate||'';
   $('f-terms').value=inv.terms||'Net 30';
-  $('f-status').value=isOwing(inv.status)?'Owing':(inv.status||'Owing');
+  const legProj=inv.status==='Lost'?'Lost':inv.status==='Paid'||inv.status==='Won'?'Won':'Quote';
+  const legPay =inv.status==='Paid'?'Fully Paid':inv.status==='Won'?'Deposit Owing':'None';
+  $('f-proj-status').value=inv.projectStatus||legProj;
+  $('f-pay-status').value=inv.paymentStatus||legPay;
+  $('f-job-done').value=(inv.jobCompleted)?'1':'0';
   $('f-disc').value=String(inv.discount||0);
+  updateEditorBadge();
   $('f-gst').value=String(inv.gstRate||5);
   $('f-notes').value=inv.notes||'';
   lineItems=(inv.lineItems||[]).map(li=>({...li}));
@@ -857,23 +968,35 @@ function calcTotals(){
   const n=val('f-num');if(!$('m-subject').dataset.m)$('m-subject').value=`Invoice${n?' '+n:''} from Apex Terrain Management`;
 }
 
+function updateEditorBadge(){
+  const proj=val('f-proj-status')||'Quote';
+  const pay=$('f-pay-status')?$('f-pay-status').value:'None';
+  const done=$('f-job-done')?$('f-job-done').value==='1':false;
+  const b=computeBadge({projectStatus:proj,paymentStatus:pay,jobCompleted:done});
+  const el=$('ed-badge-preview');
+  if(el)el.innerHTML=`<span style="font-size:11px;color:var(--text3);margin-right:6px;">Status:</span><span class="badge ${b.cls}">${b.label}</span>`;
+}
+
 // Attach listeners to form fields
 ['f-disc','f-gst'].forEach(id=>{const el=$(id);if(el)el.addEventListener('input',calcTotals);});
 $('m-email').addEventListener('input',function(){this.dataset.m='1';});
 $('m-subject').addEventListener('input',function(){this.dataset.m='1';});
 
-function buildInvObj(existStatus='Owing'){
+function buildInvObj(){
   let sub=lineItems.reduce((s,l)=>l.service==='Discount'?s-l.rate:s+l.qty*l.rate,0);
   const disc=parseFloat(val('f-disc'))||0;
   const gstR=(parseFloat(val('f-gst'))||5)/100;
   const after=Math.max(0,sub-disc);
   const gst=after*gstR;
+  const proj=val('f-proj-status')||'Quote';
+  const pay=$('f-pay-status').value||'None';
+  const done=$('f-job-done').value==='1';
   return {
     id:editingId||('inv_'+Date.now()),
     number:val('f-num')||nextNum(),
     date:val('f-date'),dueDate:val('f-due'),terms:val('f-terms'),
     serviceCity:val('f-scity'),
-    status:val('f-status')||existStatus,
+    projectStatus:proj, paymentStatus:pay, jobCompleted:done,
     customer:{name:val('f-name'),street:val('f-street'),city:val('f-city'),email:val('f-email')},
     lineItems:lineItems.map(l=>({...l})),
     notes:val('f-notes'),
@@ -886,8 +1009,7 @@ function buildInvObj(existStatus='Owing'){
 }
 
 async function saveInvoice(){
-  const ex=editingId?invoices.find(i=>i.id===editingId):null;
-  const inv=buildInvObj(ex?.status||'Owing');
+  const inv=buildInvObj();
   if(!editingId)editingId=inv.id;
   try{await invCol.doc(inv.id).set(inv);toast('Invoice saved!');closeEditor();}
   catch(e){toast('Save failed',false);}
@@ -904,7 +1026,7 @@ function closePreview(){$('preview-modal').classList.remove('open');}
 
 function renderPreviewHTML(){
   const s=getS();
-  const inv=buildInvObj(invoices.find(i=>i.id===editingId)?.status||'Owing');
+  const inv=buildInvObj();
   let sub=0;
   const rows=inv.lineItems.map((li,i)=>{
     const isDisc=li.service==='Discount';
@@ -1051,7 +1173,7 @@ function renderReports(){
   const monthInvs=invoices.filter(i=>{
     if(!i.date)return false;
     const d=new Date(i.date+'T00:00:00');
-    return d.getFullYear()===y&&d.getMonth()===m&&i.status!=='Lost';
+    return d.getFullYear()===y&&d.getMonth()===m&&computeBadge(i).label!=='Lost';
   });
 
   const rev=monthInvs.reduce((s,i)=>s+(i.total||0),0);
