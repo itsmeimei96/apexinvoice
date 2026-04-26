@@ -1143,21 +1143,31 @@ async function sendEmail(){
   const s=getS();
   const to=$('m-email').value.trim();
   if(!to){showMStatus('err','Enter a recipient email.');return;}
+  if(!s.key||!s.svc||!s.tpl){showMStatus('err','EmailJS not configured. Open Settings ⚙');return;}
   const btn=$('btn-send-email');btn.textContent='Sending…';btn.disabled=true;
   try{
     renderPreviewHTML();
-    emailjs.init(s.key);
+    emailjs.init({publicKey:s.key});
     await emailjs.send(s.svc,s.tpl,{
-      to_email:to,to_name:val('f-name')||'Customer',
-      from_name:s.name||'Apex Terrain',subject:$('m-subject').value,
-      message:$('m-msg').value,invoice_html:$('invoice-preview').innerHTML,
-      invoice_number:val('f-num'),invoice_total:$('t-bal').textContent,
-      invoice_due:fmtD(val('f-due')),reply_to:s.email||''
+      to_email:to,
+      to_name:val('f-name')||'Customer',
+      from_name:s.name||'Apex Terrain Management',
+      subject:$('m-subject').value,
+      message:$('m-msg').value,
+      invoice_html:$('invoice-preview').innerHTML,
+      invoice_number:val('f-num'),
+      invoice_total:$('t-bal').textContent,
+      invoice_due:fmtD(val('f-due')),
+      reply_to:s.email||''
     });
     await saveInvoice().catch(()=>{});
     showMStatus('ok','✓ Invoice sent!');
     setTimeout(()=>{closeEmailModal();toast('Invoice sent to '+to);},1800);
-  }catch(e){showMStatus('err','Send failed: '+(e.text||e.message||'Check EmailJS settings'));}
+  }catch(e){
+    const msg=e.text||e.message||JSON.stringify(e);
+    showMStatus('err','Send failed: '+msg);
+    console.error('EmailJS error:',e);
+  }
   finally{btn.textContent='Send Invoice';btn.disabled=false;}
 }
 
