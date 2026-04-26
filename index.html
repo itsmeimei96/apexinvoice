@@ -535,10 +535,16 @@ db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 //  CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 const SERVICES = [
-  {label:'Minimum Service Fee (3 hrs)', unit:'Hours', rate:250},
-  {label:'Service Fee',                 unit:'Hours', rate:85},
-  {label:'Minimum Travel Fee (≤1 hr)', unit:'Trip',  rate:100},
-  {label:'Travel Fee',                  unit:'Hours', rate:75},
+  {label:'Minimum Service Fee (3 hours)', unit:'Hours', rate:250},
+  {label:'Service Fee',                   unit:'Hours', rate:250},
+  {label:'Minimum Travel Fee',            unit:'Trips', rate:100},
+  {label:'Travel Fee',                    unit:'Trips', rate:100},
+  {label:'Labor / Operator hours',        unit:'Hours', rate:85},
+  {label:'Travel Time (≤1 hr)',           unit:'Hours', rate:100},
+  {label:'Mulch',                         unit:'Bags',  rate:0},
+  {label:'Disposal Fee',                  unit:'Load',  rate:0},
+  {label:'Paver Installation',            unit:'Sq Ft', rate:0},
+  {label:'Discount',                      unit:'',      rate:0, isDiscount:true},
 ];
 const EJ = {svc:'service_dod1yfs', tpl:'template_o2by2hk', key:'AtIAxkG9wGaNxj5H9'};
 const TEN_DAYS = 10*24*60*60*1000;
@@ -733,8 +739,8 @@ function resetForm(){
   $('f-terms').value='Net 30';$('f-status').value='Owing';
   $('f-disc').value='0';$('f-gst').value='5';$('f-notes').value='';
   lineItems=[
-    {service:'Minimum Service Fee (3 hrs)',customDesc:'',qty:3,unit:'Hours',rate:250},
-    {service:'Minimum Travel Fee (≤1 hr)',customDesc:'',qty:1,unit:'Trip',rate:100}
+    {service:'Minimum Service Fee (3 hours)',customDesc:'',qty:3,unit:'Hours',rate:250},
+    {service:'Minimum Travel Fee',customDesc:'',qty:1,unit:'Trips',rate:100}
   ];
 }
 function loadInv(inv){
@@ -769,9 +775,28 @@ function removeLine(i){lineItems.splice(i,1);renderLines();calcTotals();}
 function renderLines(){
   $('li-list').innerHTML=lineItems.map((li,i)=>{
     const isOther=li.service==='__other';
+    const isDisc=li.service==='Discount';
     const opts=`<option value="" disabled ${!li.service?'selected':''}>Select a service…</option>`+
       SERVICES.map(s=>`<option value="${esc2(s.label)}" ${li.service===s.label?'selected':''}>${esc2(s.label)}</option>`).join('')+
       `<option value="__other" ${isOther?'selected':''}>✏ Other — Manual Entry</option>`;
+    if(isDisc){
+      return `<div class="li-card">
+        <div class="li-desc" style="padding-right:28px;">
+          <select class="li-sel" onchange="onSvcChange(this,${i})">${opts}</select>
+        </div>
+        <div class="li-grid">
+          <div style="grid-column:span 2;">
+            <div class="li-lbl">Discount Amount ($)</div>
+            <input class="li-inp" type="number" value="${li.rate}" min="0" step="0.01" placeholder="0.00" oninput="lineItems[${i}].rate=parseFloat(this.value)||0;calcTotals();updateLineAmt(${i});">
+          </div>
+          <div style="grid-column:span 2;">
+            <div class="li-lbl">Deduction</div>
+            <div class="li-val" id="la-${i}" style="color:var(--red);">-${fmt(li.rate)}</div>
+          </div>
+        </div>
+        <button class="li-rm" onclick="removeLine(${i})">×</button>
+      </div>`;
+    }
     return `<div class="li-card">
       <div class="li-desc">
         <select class="li-sel" onchange="onSvcChange(this,${i})">${opts}</select>
@@ -809,10 +834,15 @@ function onSvcChange(sel,i){
   }
   renderLines();calcTotals();
 }
-function updateLineAmt(i){const el=$(`la-${i}`);if(el)el.textContent=fmt(lineItems[i].qty*lineItems[i].rate);}
+function updateLineAmt(i){
+  const el=$(`la-${i}`);if(!el)return;
+  const li=lineItems[i];
+  if(li.service==='Discount'){el.textContent='-'+fmt(li.rate);el.style.color='var(--red)';}
+  else{el.textContent=fmt(li.qty*li.rate);el.style.color='var(--orange)';}
+}
 
 function calcTotals(){
-  let sub=lineItems.reduce((s,l)=>s+l.qty*l.rate,0);
+  let sub=lineItems.reduce((s,l)=>l.service==='Discount'?s-l.rate:s+l.qty*l.rate,0);
   const disc=parseFloat(val('f-disc'))||0;
   const gstR=(parseFloat(val('f-gst'))||5)/100;
   const after=Math.max(0,sub-disc);
@@ -833,7 +863,7 @@ $('m-email').addEventListener('input',function(){this.dataset.m='1';});
 $('m-subject').addEventListener('input',function(){this.dataset.m='1';});
 
 function buildInvObj(existStatus='Owing'){
-  let sub=lineItems.reduce((s,l)=>s+l.qty*l.rate,0);
+  let sub=lineItems.reduce((s,l)=>l.service==='Discount'?s-l.rate:s+l.qty*l.rate,0);
   const disc=parseFloat(val('f-disc'))||0;
   const gstR=(parseFloat(val('f-gst'))||5)/100;
   const after=Math.max(0,sub-disc);
@@ -877,8 +907,19 @@ function renderPreviewHTML(){
   const inv=buildInvObj(invoices.find(i=>i.id===editingId)?.status||'Owing');
   let sub=0;
   const rows=inv.lineItems.map((li,i)=>{
+    const isDisc=li.service==='Discount';
     const desc=li.service==='__other'?li.customDesc:li.service;
-    const amt=li.qty*li.rate;sub+=amt;
+    const amt=isDisc?-li.rate:li.qty*li.rate;
+    sub+=amt;
+    if(isDisc){
+      return `<tr style="background:${i%2===0?'#f9f9f9':'white'};border-bottom:1px solid #eee;">
+        <td style="padding:7px 12px;font-size:13px;color:#c0392b;font-style:italic;">${esc(desc)}</td>
+        <td style="padding:7px 12px;font-size:13px;text-align:center;color:#ccc;">—</td>
+        <td style="padding:7px 12px;font-size:13px;text-align:center;color:#ccc;">—</td>
+        <td style="padding:7px 12px;font-size:13px;text-align:right;color:#ccc;">—</td>
+        <td style="padding:7px 12px;font-size:13px;text-align:right;color:#c0392b;">-${fmt(li.rate)}</td>
+      </tr>`;
+    }
     return `<tr style="background:${i%2===0?'#f9f9f9':'white'};border-bottom:1px solid #eee;">
       <td style="padding:7px 12px;font-size:13px;">${esc(desc)}</td>
       <td style="padding:7px 12px;font-size:13px;text-align:center;">${li.qty}</td>
