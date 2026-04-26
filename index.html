@@ -257,22 +257,22 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
     <div id="pane-home" class="tab-pane active">
       <div class="sum-grid">
         <div class="sum-card c-owing">
-          <div class="sum-lbl">Quotes</div>
+          <div class="sum-lbl">🟡 Pending</div>
           <div class="sum-val" id="s-quotes">$0</div>
-          <div class="sum-cnt" id="c-quotes">0 pending</div>
+          <div class="sum-cnt" id="c-quotes">0 quotes</div>
         </div>
         <div class="sum-card c-won">
-          <div class="sum-lbl">Active Jobs</div>
+          <div class="sum-lbl">🔵 Scheduled</div>
           <div class="sum-val" id="s-active">$0</div>
           <div class="sum-cnt" id="c-active">0 jobs</div>
         </div>
         <div class="sum-card c-lost">
-          <div class="sum-lbl">Balance Owing</div>
+          <div class="sum-lbl">🔴 Balance Owing</div>
           <div class="sum-val" id="s-balance">$0</div>
           <div class="sum-cnt" id="c-balance">0 invoices</div>
         </div>
         <div class="sum-card c-paid">
-          <div class="sum-lbl">Paid</div>
+          <div class="sum-lbl">🟢 Paid</div>
           <div class="sum-val" id="s-paid">$0</div>
           <div class="sum-cnt" id="c-paid">0 invoices</div>
         </div>
@@ -414,34 +414,18 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
       <div class="form-row2">
         <div class="form-grp"><label class="label">Terms</label><input id="f-terms" class="ed-field" type="text" placeholder="Net 30"></div>
         <div class="form-grp">
-          <label class="label">Project Status</label>
-          <select id="f-proj-status" class="ed-field" onchange="updateEditorBadge()">
-            <option value="Quote">Quote</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
+          <label class="label">Invoice Status</label>
+          <select id="f-status-label" class="ed-field" onchange="updateEditorBadge()">
+            <option value="Pending">🟡  Pending — Quote Sent</option>
+            <option value="Deposit Owing">🟠  Deposit Owing</option>
+            <option value="Scheduled">🔵  Scheduled — Deposit Paid</option>
+            <option value="Balance Owing">🔴  Balance Owing — Job Done</option>
+            <option value="Paid">🟢  Paid — Fully Settled</option>
+            <option value="Lost">⚫  Lost</option>
           </select>
         </div>
       </div>
-      <div class="form-row2">
-        <div class="form-grp">
-          <label class="label">Payment Status</label>
-          <select id="f-pay-status" class="ed-field" onchange="updateEditorBadge()">
-            <option value="None">— None</option>
-            <option value="Deposit Owing">Deposit Owing</option>
-            <option value="Deposit Paid">Deposit Paid</option>
-            <option value="Balance Owing">Balance Owing</option>
-            <option value="Fully Paid">Fully Paid</option>
-          </select>
-        </div>
-        <div class="form-grp">
-          <label class="label">Job Completed</label>
-          <select id="f-job-done" class="ed-field" onchange="updateEditorBadge()">
-            <option value="0">No</option>
-            <option value="1">Yes — Job Done</option>
-          </select>
-        </div>
-      </div>
-      <div style="padding:2px 0 6px;" id="ed-badge-preview"></div>
+      <div style="padding:2px 0 8px;" id="ed-badge-preview"></div>
       <div class="form-row2">
         <div class="form-grp"><label class="label">Discount ($)</label><input id="f-disc" class="ed-field" type="number" value="0" min="0" step="0.01"></div>
         <div class="form-grp"><label class="label">GST Rate (%)</label><input id="f-gst" class="ed-field" type="number" value="5" min="0" max="100" step="0.1"></div>
@@ -682,19 +666,20 @@ function switchTab(tab){
 // ═══════════════════════════════════════════════════════════════
 function renderHome(){
   const sum=arr=>arr.reduce((s,i)=>s+(i.total||0),0);
-  const quotes  =invoices.filter(i=>computeBadge(i).label==='Pending');
-  const active  =invoices.filter(i=>['Deposit Owing','Scheduled'].includes(computeBadge(i).label));
-  const balance =invoices.filter(i=>computeBadge(i).label==='Balance Owing');
-  const paid    =invoices.filter(i=>computeBadge(i).label==='Paid');
+  const getBadge=i=>computeBadge(i).label;
+  const quotes  =invoices.filter(i=>getBadge(i)==='Pending');
+  const active  =invoices.filter(i=>['Deposit Owing','Scheduled'].includes(getBadge(i)));
+  const balance =invoices.filter(i=>getBadge(i)==='Balance Owing');
+  const paid    =invoices.filter(i=>getBadge(i)==='Paid');
 
-  setText('s-quotes', fmtM(sum(quotes)));  setText('c-quotes', `${quotes.length} pending`);
+  setText('s-quotes', fmtM(sum(quotes)));  setText('c-quotes', `${quotes.length} quote${quotes.length!==1?'s':''}`);
   setText('s-active', fmtM(sum(active)));  setText('c-active', `${active.length} job${active.length!==1?'s':''}`);
   setText('s-balance',fmtM(sum(balance))); setText('c-balance',`${balance.length} invoice${balance.length!==1?'s':''}`);
   setText('s-paid',   fmtM(sum(paid)));    setText('c-paid',   `${paid.length} invoice${paid.length!==1?'s':''}`);
 
   const now=Date.now();
   const flagged=invoices.filter(i=>{
-    const b=computeBadge(i).label;
+    const b=getBadge(i);
     if(!['Pending','Deposit Owing','Balance Owing'].includes(b)) return false;
     return (now-(i.updatedAt||i.createdAt||0))>TEN_DAYS;
   });
@@ -843,7 +828,7 @@ function resetForm(){
   $('f-num').value=nextNum();$('f-scity').value='';
   $('f-date').value=today;$('f-due').value=due.toISOString().split('T')[0];
   $('f-terms').value='Net 30';
-  $('f-proj-status').value='Quote';$('f-pay-status').value='None';$('f-job-done').value='0';
+  $('f-status-label').value='Pending';
   $('f-disc').value='0';$('f-gst').value='5';$('f-notes').value='';
   updateEditorBadge();
   lineItems=[
@@ -861,11 +846,7 @@ function loadInv(inv){
   $('f-date').value=inv.date||'';
   $('f-due').value=inv.dueDate||'';
   $('f-terms').value=inv.terms||'Net 30';
-  const legProj=inv.status==='Lost'?'Lost':inv.status==='Paid'||inv.status==='Won'?'Won':'Quote';
-  const legPay =inv.status==='Paid'?'Fully Paid':inv.status==='Won'?'Deposit Owing':'None';
-  $('f-proj-status').value=inv.projectStatus||legProj;
-  $('f-pay-status').value=inv.paymentStatus||legPay;
-  $('f-job-done').value=(inv.jobCompleted)?'1':'0';
+  $('f-status-label').value=computeBadge(inv).label;
   $('f-disc').value=String(inv.discount||0);
   updateEditorBadge();
   $('f-gst').value=String(inv.gstRate||5);
@@ -970,13 +951,22 @@ function calcTotals(){
   const n=val('f-num');if(!$('m-subject').dataset.m)$('m-subject').value=`Invoice${n?' '+n:''} from Apex Terrain Management`;
 }
 
+function statusLabelToFields(label){
+  switch(label){
+    case 'Deposit Owing': return{projectStatus:'Won',  paymentStatus:'Deposit Owing', jobCompleted:false};
+    case 'Scheduled':     return{projectStatus:'Won',  paymentStatus:'Deposit Paid',  jobCompleted:false};
+    case 'Balance Owing': return{projectStatus:'Won',  paymentStatus:'Balance Owing', jobCompleted:true};
+    case 'Paid':          return{projectStatus:'Won',  paymentStatus:'Fully Paid',    jobCompleted:true};
+    case 'Lost':          return{projectStatus:'Lost', paymentStatus:'None',          jobCompleted:false};
+    default:              return{projectStatus:'Quote',paymentStatus:'None',          jobCompleted:false};
+  }
+}
+
 function updateEditorBadge(){
-  const proj=val('f-proj-status')||'Quote';
-  const pay=$('f-pay-status')?$('f-pay-status').value:'None';
-  const done=$('f-job-done')?$('f-job-done').value==='1':false;
-  const b=computeBadge({projectStatus:proj,paymentStatus:pay,jobCompleted:done});
+  const label=$('f-status-label')?$('f-status-label').value:'Pending';
+  const b=computeBadge(statusLabelToFields(label));
   const el=$('ed-badge-preview');
-  if(el)el.innerHTML=`<span style="font-size:11px;color:var(--text3);margin-right:6px;">Status:</span><span class="badge ${b.cls}">${b.label}</span>`;
+  if(el)el.innerHTML=`<span class="badge ${b.cls}" style="font-size:12px;">${b.label}</span>`;
 }
 
 // Attach listeners to form fields
@@ -990,15 +980,13 @@ function buildInvObj(){
   const gstR=(parseFloat(val('f-gst'))||5)/100;
   const after=Math.max(0,sub-disc);
   const gst=after*gstR;
-  const proj=val('f-proj-status')||'Quote';
-  const pay=$('f-pay-status').value||'None';
-  const done=$('f-job-done').value==='1';
+  const fields=statusLabelToFields($('f-status-label')?$('f-status-label').value:'Pending');
   return {
     id:editingId||('inv_'+Date.now()),
     number:val('f-num')||nextNum(),
     date:val('f-date'),dueDate:val('f-due'),terms:val('f-terms'),
     serviceCity:val('f-scity'),
-    projectStatus:proj, paymentStatus:pay, jobCompleted:done,
+    projectStatus:fields.projectStatus, paymentStatus:fields.paymentStatus, jobCompleted:fields.jobCompleted,
     customer:{name:val('f-name'),street:val('f-street'),city:val('f-city'),email:val('f-email')},
     lineItems:lineItems.map(l=>({...l})),
     notes:val('f-notes'),
