@@ -227,6 +227,15 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 .sheet-sec{margin-bottom:18px;}
 .sheet-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange);margin-bottom:10px;}
 
+/* ── Form Search Sheet ──────────────────────────────────────── */
+.fsearch-item{padding:12px 14px;border-radius:8px;background:var(--card);margin-bottom:8px;cursor:pointer;border:1px solid var(--border);-webkit-tap-highlight-color:transparent;transition:border-color .15s;}
+.fsearch-item:active{border-color:var(--orange);}
+.fsearch-name{font-size:13px;font-weight:600;}
+.fsearch-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--text3);}
+.sync-dot.synced{background:var(--green);}
+.sync-dot.pending{background:var(--amber);}
+
 /* ── Toast ──────────────────────────────────────────────────── */
 #toast{position:fixed;bottom:calc(var(--nav) + var(--safe) + 12px);left:50%;transform:translateX(-50%) translateY(16px);background:#2a2a2a;color:var(--text);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:500;white-space:nowrap;border:1px solid var(--border2);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -284,7 +293,10 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
 
     <!-- ── INVOICES ────────────────────────────────────────── -->
     <div id="pane-invoices" class="tab-pane">
-      <input id="inv-search" class="field" type="text" placeholder="Search invoices…" oninput="filterInvoices(this.value)" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <input id="inv-search" class="field" type="text" placeholder="Search invoices…" oninput="filterInvoices(this.value)" style="flex:1;margin-bottom:0;">
+        <button onclick="fetchSheetInvoices().then(()=>toast('Synced!'))" style="background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;-webkit-tap-highlight-color:transparent;" title="Pull latest from Google Sheets">↻</button>
+      </div>
       <div id="invoice-list"></div>
     </div>
 
@@ -380,7 +392,10 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
   <div id="ed-body">
     <!-- Customer -->
     <div class="ed-sec">
-      <div class="ed-sec-title">Invoice To</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="ed-sec-title" style="margin-bottom:0;">Invoice To</div>
+        <button class="btn btn-surface btn-sm" onclick="openFormSearch()" style="font-size:11px;padding:6px 10px;">🔍 Search Requests</button>
+      </div>
       <div class="form-grp"><label class="label">Customer / Company Name</label><input id="f-name" class="ed-field" type="text" placeholder="Customer Name"></div>
       <div class="form-row2">
         <div class="form-grp"><label class="label">Street Address</label><input id="f-street" class="ed-field" type="text" placeholder="Street address"></div>
@@ -484,6 +499,11 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
       <div class="form-grp"><label class="label">E-transfer Payment Email</label><input id="s-pay-email" class="field" type="email" placeholder="payment@yourcompany.com"></div>
     </div>
     <div class="sheet-sec">
+      <div class="sheet-sec-title">Google Sheets Sync</div>
+      <div class="form-grp"><label class="label">Apps Script URL</label><input id="s-sheets-url" class="field" type="url" placeholder="https://script.google.com/macros/s/…/exec"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:-4px;line-height:1.6;">Deploy your Code.gs as a Web App (Execute as: Me, Access: Anyone) and paste the /exec URL above.</div>
+    </div>
+    <div class="sheet-sec">
       <div class="sheet-sec-title">EmailJS</div>
       <div class="form-grp"><label class="label">Service ID</label><input id="s-ej-svc" class="field" type="text"></div>
       <div class="form-grp"><label class="label">Template ID</label><input id="s-ej-tpl" class="field" type="text"></div>
@@ -521,6 +541,17 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
     </div>
     <div id="qa-actions" style="display:flex;flex-direction:column;gap:8px;"></div>
     <button class="btn btn-surface btn-full" style="margin-top:12px;" onclick="closeQA()">Cancel</button>
+  </div>
+</div>
+
+<!-- Form Submissions Search Sheet -->
+<div id="fsearch-bg" class="sheet-bg" onclick="closeFSearch(event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">🔍 Search Existing Requests</div>
+    <input id="fsearch-q" class="field" type="text" placeholder="Type customer name…" oninput="filterFormSearch(this.value)" style="margin-bottom:12px;">
+    <div id="fsearch-list"><p style="text-align:center;color:var(--text3);font-size:13px;padding:16px 0;">Loading…</p></div>
+    <button class="btn btn-surface btn-full" style="margin-top:12px;" onclick="closeFSearch()">Cancel</button>
   </div>
 </div>
 
@@ -576,7 +607,7 @@ const TEN_DAYS = 10*24*60*60*1000;
 // ═══════════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════════
-let invoices=[], expenses=[], lineItems=[], editingId=null;
+let invoices=[], expenses=[], lineItems=[], editingId=null, formSubmissions=[];
 let reportMonth=new Date(), currentTab='home';
 let pendingDelId=null, pendingDelType=null;
 
@@ -626,8 +657,9 @@ function loadSettings(){
   if(s.city)   $('s-city').value=s.city;
   if(s.phone)  $('s-phone').value=s.phone;
   if(s.email)  $('s-email').value=s.email;
-  if(s.gstReg)    $('s-gst-reg').value=s.gstReg;
-  if(s.payEmail)  $('s-pay-email').value=s.payEmail;
+  if(s.gstReg)     $('s-gst-reg').value=s.gstReg;
+  if(s.payEmail)   $('s-pay-email').value=s.payEmail;
+  if(s.sheetsUrl)  $('s-sheets-url').value=s.sheetsUrl;
   $('s-ej-svc').value=s.svc;
   $('s-ej-tpl').value=s.tpl;
   $('s-ej-key').value=s.key;
@@ -636,6 +668,7 @@ function saveSettings(){
   localStorage.setItem('apex-settings',JSON.stringify({
     name:val('s-name'),street:val('s-street'),city:val('s-city'),
     phone:val('s-phone'),email:val('s-email'),gstReg:val('s-gst-reg'),payEmail:val('s-pay-email'),
+    sheetsUrl:val('s-sheets-url'),
     svc:val('s-ej-svc'),tpl:val('s-ej-tpl'),key:val('s-ej-key')
   }));
   closeSettings();toast('Settings saved!');
@@ -656,9 +689,10 @@ function switchTab(tab){
   document.querySelectorAll('.nav-btn')[['home','invoices','reports','receipts'].indexOf(tab)].classList.add('active');
   setText('page-title',TAB_TITLES[tab]);
   $('fab').style.display=(tab==='invoices')?'flex':'none';
-  if(tab==='home')    renderHome();
-  if(tab==='reports') renderReports();
-  if(tab==='receipts')renderExpenses();
+  if(tab==='home')     renderHome();
+  if(tab==='invoices') fetchSheetInvoices();
+  if(tab==='reports')  renderReports();
+  if(tab==='receipts') renderExpenses();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -800,8 +834,13 @@ async function qaAction(actionId){
     case 'reopen':   updates.projectStatus='Quote'; updates.paymentStatus='None'; updates.jobCompleted=false; break;
   }
   $('qa-bg').classList.remove('open');
-  try{await invCol.doc(qaInvId).update(updates);toast('Updated!');}
-  catch(e){toast('Update failed',false);}
+  const idForSync=qaInvId;
+  try{
+    await invCol.doc(idForSync).update(updates);
+    const inv=invoices.find(i=>i.id===idForSync);
+    if(inv) syncToSheet(Object.assign({},inv,updates));
+    toast('Updated!');
+  }catch(e){toast('Update failed',false);}
   qaInvId=null;
 }
 
@@ -1001,8 +1040,12 @@ function buildInvObj(){
 async function saveInvoice(){
   const inv=buildInvObj();
   if(!editingId)editingId=inv.id;
-  try{await invCol.doc(inv.id).set(inv);toast('Invoice saved!');closeEditor();}
-  catch(e){toast('Save failed',false);}
+  try{
+    await invCol.doc(inv.id).set(inv);
+    syncToSheet(inv);
+    toast('Invoice saved!');
+    closeEditor();
+  }catch(e){toast('Save failed',false);}
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1365,6 +1408,156 @@ async function confirmYes(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════════════════════════
+function getSheetUrl(){return (getS().sheetsUrl||'').trim();}
+
+// Build a minimal row object from a full invoice
+function invToRow(inv){
+  return{
+    id:     inv.id,
+    name:   inv.customer?.name||'',
+    address:inv.customer?.street||'',
+    status: computeBadge(inv).label,
+    total:  inv.total||0,
+    date:   inv.date||''
+  };
+}
+
+// Fire-and-forget POST to Apps Script; queues if offline
+async function syncToSheet(inv){
+  const url=getSheetUrl();
+  if(!url)return;
+  const row=invToRow(inv);
+  if(!navigator.onLine){enqueueRow(row);updateSyncDot();return;}
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(row)});
+    setSyncDot('synced');
+  }catch{enqueueRow(row);setSyncDot('pending');}
+}
+
+// Flush the offline queue when back online
+async function flushSheetQueue(){
+  const url=getSheetUrl();
+  if(!url||!navigator.onLine)return;
+  const q=JSON.parse(localStorage.getItem('apex-sheet-q')||'[]');
+  if(!q.length)return;
+  try{
+    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(q)});
+    localStorage.removeItem('apex-sheet-q');
+    setSyncDot('synced');
+  }catch{}
+}
+
+function enqueueRow(row){
+  const q=JSON.parse(localStorage.getItem('apex-sheet-q')||'[]');
+  const idx=q.findIndex(r=>r.id===row.id);
+  if(idx>=0)q[idx]=row;else q.push(row);
+  localStorage.setItem('apex-sheet-q',JSON.stringify(q));
+}
+
+function setSyncDot(state){
+  document.querySelectorAll('.sync-dot').forEach(d=>{
+    d.className='sync-dot '+state;
+    d.title=state==='synced'?'Synced with Google Sheets':state==='pending'?'Pending sync (offline)':'';
+  });
+}
+function updateSyncDot(){
+  const q=JSON.parse(localStorage.getItem('apex-sheet-q')||'[]');
+  setSyncDot(q.length?'pending':'synced');
+}
+
+// GET Invoice_Database → reconcile status with Firebase
+async function fetchSheetInvoices(){
+  const url=getSheetUrl();
+  if(!url||!navigator.onLine)return;
+  try{
+    const r=await fetch(url+'?tab=invoices');
+    const data=await r.json();
+    if(!Array.isArray(data.rows))return;
+    for(const row of data.rows){
+      const inv=invoices.find(i=>i.id===row.id);
+      if(!inv)continue;
+      const currentLabel=computeBadge(inv).label;
+      const sheetLabel=String(row.status||'').trim();
+      if(sheetLabel && sheetLabel!==currentLabel){
+        const fields=statusLabelToFields(sheetLabel);
+        invCol.doc(row.id).update({...fields,updatedAt:Date.now()}).catch(()=>{});
+      }
+    }
+  }catch{}
+}
+
+// GET Form Submissions tab → populate formSubmissions cache
+async function fetchFormSubmissions(){
+  const url=getSheetUrl();
+  if(!url)return;
+  try{
+    const r=await fetch(url+'?tab=forms');
+    const data=await r.json();
+    formSubmissions=Array.isArray(data.rows)?data.rows:[];
+  }catch{formSubmissions=[];}
+}
+
+// Form search modal helpers
+function openFormSearch(){
+  $('fsearch-list').innerHTML='<p style="text-align:center;color:var(--text3);font-size:13px;padding:16px 0;">Loading…</p>';
+  $('fsearch-q').value='';
+  $('fsearch-bg').classList.add('open');
+  if(!getSheetUrl()){
+    $('fsearch-list').innerHTML='<p style="text-align:center;color:var(--text3);font-size:13px;padding:16px 0;">Add your Apps Script URL in Settings first.</p>';
+    return;
+  }
+  fetchFormSubmissions().then(()=>filterFormSearch(''));
+}
+function closeFSearch(e){if(!e||e.target===$('fsearch-bg'))$('fsearch-bg').classList.remove('open');}
+
+// Field name heuristics for flexible Form Submissions column mapping
+function gv(row,keys){for(const k of keys){const v=row[k];if(v!==undefined&&v!=='')return String(v);}return'';}
+function rowName(r){return gv(r,['name','customer_name','full_name','your_name','contact_name','client_name']);}
+function rowEmail(r){return gv(r,['email','email_address','your_email','contact_email']);}
+function rowStreet(r){return gv(r,['address','street','street_address','service_address','civic_address','location']);}
+function rowCity(r){return gv(r,['city','service_city','municipality','town']);}
+
+function filterFormSearch(q){
+  q=(q||'').toLowerCase();
+  const list=q
+    ?formSubmissions.filter(r=>rowName(r).toLowerCase().includes(q)||rowEmail(r).toLowerCase().includes(q))
+    :formSubmissions;
+  const el=$('fsearch-list');
+  if(!list.length){
+    el.innerHTML=`<p style="text-align:center;color:var(--text3);font-size:13px;padding:16px 0;">${
+      formSubmissions.length?'No matches found.':'No submissions found — check your Apps Script URL in Settings.'
+    }</p>`;
+    return;
+  }
+  el.innerHTML=list.slice(0,40).map(r=>{
+    const idx=formSubmissions.indexOf(r);
+    const name=rowName(r)||'Unknown';
+    const email=rowEmail(r);
+    const street=rowStreet(r);
+    return `<div class="fsearch-item" onclick="fillFromForm(${idx})">
+      <div class="fsearch-name">${esc(name)}</div>
+      <div class="fsearch-sub">${[email,street].filter(Boolean).map(esc).join(' · ')||'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function fillFromForm(idx){
+  const r=formSubmissions[idx];
+  if(!r)return;
+  const name=rowName(r),email=rowEmail(r),street=rowStreet(r),city=rowCity(r);
+  if(name)  $('f-name').value=name;
+  if(email) $('f-email').value=email;
+  if(street)$('f-street').value=street;
+  if(city)  $('f-city').value=city;
+  closeFSearch();
+  calcTotals();
+}
+
+window.addEventListener('online', ()=>{flushSheetQueue();fetchSheetInvoices();});
+
+// ═══════════════════════════════════════════════════════════════
 //  FIRESTORE REAL-TIME SYNC
 // ═══════════════════════════════════════════════════════════════
 function startSync(){
@@ -1392,6 +1585,8 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').cat
 loadSettings();
 switchTab('home');
 startSync();
+flushSheetQueue();
+updateSyncDot();
 </script>
 </body>
 </html>
