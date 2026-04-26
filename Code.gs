@@ -29,19 +29,21 @@ function doGet(e) {
   }
 
   // Default: Invoice_Database
+  // Columns: A=Invoice ID, B=Name, C=Email, D=Address, E=Status, F=Total Amount, G=Date Created
   const sheet = ss.getSheetByName(INVOICE_TAB);
   if (!sheet) return json({ rows: [] });
   const vals = sheet.getDataRange().getValues();
   if (vals.length < 2) return json({ rows: [] });
   const rows = vals.slice(1)
-    .filter(r => r[0])
+    .filter(r => r[0] && r[1])   // skip rows with no ID or no name
     .map(r => ({
       id:      String(r[0] || ''),
       name:    String(r[1] || ''),
-      address: String(r[2] || ''),
-      status:  String(r[3] || ''),
-      total:   Number(r[4]  || 0),
-      date:    r[5] ? Utilities.formatDate(new Date(r[5]), Session.getScriptTimeZone(), 'yyyy-MM-dd') : ''
+      email:   String(r[2] || ''),
+      address: String(r[3] || ''),
+      status:  String(r[4] || ''),
+      total:   Number(r[5]  || 0),
+      date:    r[6] ? Utilities.formatDate(new Date(r[6]), Session.getScriptTimeZone(), 'yyyy-MM-dd') : ''
     }));
   return json({ rows });
 }
@@ -73,11 +75,11 @@ function upsertRow(sheet, item) {
   const id    = String(item.id || '');
   if (!id) return 'skipped';
   const vals  = sheet.getDataRange().getValues();
-  const row   = [id, item.name || '', item.address || '', item.status || '', item.total || 0, item.date || ''];
+  const row   = [id, item.name || '', item.email || '', item.address || '', item.status || '', item.total || 0, item.date || ''];
 
   for (let i = 1; i < vals.length; i++) {
     if (String(vals[i][0]) === id) {
-      sheet.getRange(i + 1, 1, 1, 6).setValues([row]);
+      sheet.getRange(i + 1, 1, 1, 7).setValues([row]);
       return 'updated';
     }
   }

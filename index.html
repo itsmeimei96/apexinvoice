@@ -1418,6 +1418,7 @@ function invToRow(inv){
   return{
     id:     inv.id,
     name:   inv.customer?.name||'',
+    email:  inv.customer?.email||'',
     address:inv.customer?.street||'',
     status: computeBadge(inv).label,
     total:  inv.total||0,
@@ -1494,7 +1495,7 @@ async function fetchSheetInvoices(){
           projectStatus:fields.projectStatus,
           paymentStatus:fields.paymentStatus,
           jobCompleted:fields.jobCompleted,
-          customer:{name:row.name||'',street:row.address||'',city:'',email:''},
+          customer:{name:row.name||'',street:row.address||'',city:'',email:row.email||''},
           lineItems:[],
           notes:'Imported from Google Sheets',
           discount:0,gstRate:5,
