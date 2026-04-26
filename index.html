@@ -602,6 +602,7 @@ const SERVICES = [
   {label:'Discount',                      unit:'',      rate:0, isDiscount:true},
 ];
 const EJ = {svc:'service_dod1yfs', tpl:'template_o2by2hk', key:'AtIAxkG9wGaNxj5H9'};
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwloR_tx0TJhHyjYsyTYQNY0CFKjrUyV4YZdbTcKQMFl6Aw5Mm6EIAxUAwciCywdiuT6g/exec';
 const TEN_DAYS = 10*24*60*60*1000;
 
 // ═══════════════════════════════════════════════════════════════
@@ -659,7 +660,7 @@ function loadSettings(){
   if(s.email)  $('s-email').value=s.email;
   if(s.gstReg)     $('s-gst-reg').value=s.gstReg;
   if(s.payEmail)   $('s-pay-email').value=s.payEmail;
-  if(s.sheetsUrl)  $('s-sheets-url').value=s.sheetsUrl;
+  $('s-sheets-url').value=s.sheetsUrl||GAS_URL;
   $('s-ej-svc').value=s.svc;
   $('s-ej-tpl').value=s.tpl;
   $('s-ej-key').value=s.key;
@@ -1410,7 +1411,7 @@ async function confirmYes(){
 // ═══════════════════════════════════════════════════════════════
 //  GOOGLE SHEETS SYNC
 // ═══════════════════════════════════════════════════════════════
-function getSheetUrl(){return (getS().sheetsUrl||'').trim();}
+function getSheetUrl(){return (getS().sheetsUrl||GAS_URL).trim();}
 
 // Build a minimal row object from a full invoice
 function invToRow(inv){
