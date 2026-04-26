@@ -1593,11 +1593,19 @@ window.addEventListener('online', ()=>{flushSheetQueue();fetchSheetInvoices();})
 // ═══════════════════════════════════════════════════════════════
 //  FIRESTORE REAL-TIME SYNC
 // ═══════════════════════════════════════════════════════════════
+function cleanupEmptyInvoices(){
+  // Delete any Firebase record with no customer name — leftover from before validation was added
+  const empty=invoices.filter(i=>!i.customer?.name&&!i.customer?.email&&!i.customer?.street);
+  empty.forEach(i=>invCol.doc(i.id).delete().catch(()=>{}));
+  if(empty.length)console.log(`Cleaned up ${empty.length} empty invoice(s)`);
+}
+
 function startSync(){
   // Invoices
   invCol.onSnapshot(snap=>{
     invoices=snap.docs.map(d=>d.data());
     invoices.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    cleanupEmptyInvoices();
     renderInvoiceList(invoices);
     renderHome();
     if(currentTab==='reports')renderReports();
