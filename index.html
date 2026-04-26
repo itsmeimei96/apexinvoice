@@ -344,9 +344,9 @@
       <div class="settings-section-title">EMAILJS CONFIGURATION</div>
       <p style="color:#666;font-size:11px;margin-bottom:12px;line-height:1.6;">Create a free account at <strong style="color:var(--orange);">emailjs.com</strong> → connect Gmail → create a Template with <code style="color:#aaa;">&#123;&#123;invoice_html&#125;&#125;</code> as the HTML body → paste IDs below.</p>
       <div class="settings-grid-3">
-        <div><label class="label" style="color:#777;">Service ID</label><input id="s-ej-service" class="field settings-field" type="text" placeholder="service_xxxxxxx"></div>
-        <div><label class="label" style="color:#777;">Template ID</label><input id="s-ej-template" class="field settings-field" type="text" placeholder="template_xxxxxxx"></div>
-        <div><label class="label" style="color:#777;">Public Key</label><input id="s-ej-pubkey" class="field settings-field" type="text" placeholder="Public key from Account → API Keys"></div>
+        <div><label class="label" style="color:#777;">Service ID</label><input id="s-ej-service" class="field settings-field" type="text" placeholder="service_dod1yfs"></div>
+        <div><label class="label" style="color:#777;">Template ID</label><input id="s-ej-template" class="field settings-field" type="text" placeholder="template_o2by2hk"></div>
+        <div><label class="label" style="color:#777;">Public Key</label><input id="s-ej-pubkey" class="field settings-field" type="text" placeholder="AtIAxkG9wGaNxj5H9"></div>
       </div>
       <button id="btn-save-settings" class="btn btn-orange btn-sm">Save Settings</button>
     </div>
@@ -642,8 +642,15 @@ function loadInvoices() {
 function saveInvoicesStore() {
   localStorage.setItem('apex-invoices', JSON.stringify(invoices));
 }
+const EJ_DEFAULTS = {
+  ejService:  'service_dod1yfs',
+  ejTemplate: 'template_o2by2hk',
+  ejPubkey:   'AtIAxkG9wGaNxj5H9',
+};
+
 function getSettings() {
-  return JSON.parse(localStorage.getItem('apex-inv-settings') || '{}');
+  const stored = JSON.parse(localStorage.getItem('apex-inv-settings') || '{}');
+  return Object.assign({}, EJ_DEFAULTS, stored);
 }
 function loadSettings() {
   const s = getSettings();
@@ -653,9 +660,9 @@ function loadSettings() {
   if (s.phone)      $('s-phone').value = s.phone;
   if (s.email)      $('s-email').value = s.email;
   if (s.gst)        $('s-gst').value = s.gst;
-  if (s.ejService)  $('s-ej-service').value = s.ejService;
-  if (s.ejTemplate) $('s-ej-template').value = s.ejTemplate;
-  if (s.ejPubkey)   $('s-ej-pubkey').value = s.ejPubkey;
+  $('s-ej-service').value  = s.ejService;
+  $('s-ej-template').value = s.ejTemplate;
+  $('s-ej-pubkey').value   = s.ejPubkey;
 }
 $('btn-save-settings').addEventListener('click', () => {
   localStorage.setItem('apex-inv-settings', JSON.stringify({
