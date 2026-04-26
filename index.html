@@ -1593,11 +1593,19 @@ window.addEventListener('online', ()=>{flushSheetQueue();fetchSheetInvoices();})
 // ═══════════════════════════════════════════════════════════════
 //  FIRESTORE REAL-TIME SYNC
 // ═══════════════════════════════════════════════════════════════
-function cleanupEmptyInvoices(){
-  // Delete any Firebase record with no customer name — leftover from before validation was added
-  const empty=invoices.filter(i=>!i.customer?.name&&!i.customer?.email&&!i.customer?.street);
-  empty.forEach(i=>invCol.doc(i.id).delete().catch(()=>{}));
-  if(empty.length)console.log(`Cleaned up ${empty.length} empty invoice(s)`);
+async function purgeEmptyInvoices(){
+  try{
+    const snap=await invCol.get();
+    const toDelete=snap.docs.filter(doc=>{
+      const c=doc.data().customer||{};
+      return !c.name&&!c.email&&!c.street;
+    });
+    if(!toDelete.length)return;
+    const batch=db.batch();
+    toDelete.forEach(doc=>batch.delete(doc.ref));
+    await batch.commit();
+    toast(`Removed ${toDelete.length} empty invoice${toDelete.length!==1?'s':''}`);
+  }catch(e){console.error('Purge failed',e);}
 }
 
 function startSync(){
@@ -1605,7 +1613,6 @@ function startSync(){
   invCol.onSnapshot(snap=>{
     invoices=snap.docs.map(d=>d.data());
     invoices.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    cleanupEmptyInvoices();
     renderInvoiceList(invoices);
     renderHome();
     if(currentTab==='reports')renderReports();
@@ -1626,6 +1633,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').cat
 loadSettings();
 switchTab('home');
 startSync();
+purgeEmptyInvoices();
 flushSheetQueue();
 updateSyncDot();
 </script>
