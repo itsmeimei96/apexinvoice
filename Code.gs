@@ -4,15 +4,16 @@
 //  Execute as: Me | Who has access: Anyone
 // ═══════════════════════════════════════════════════════════════
 
-const INVOICE_TAB = 'Invoice_Database';
-const FORM_TAB    = 'Form Submissions';
+const SPREADSHEET_ID = '1Px2WzEXuSe6y87tDdKCA_7EgYhwQaaEQ5kot-7WUzKQ';
+const INVOICE_TAB    = 'Invoice_Database';
+const FORM_TAB       = 'Form Submissions';
 
 // ── GET ─────────────────────────────────────────────────────────
 // ?tab=invoices  →  all rows from Invoice_Database
 // ?tab=forms     →  all rows from Form Submissions (header-mapped)
 function doGet(e) {
   const tab = (e.parameter.tab || 'invoices');
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const ss  = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   if (tab === 'forms') {
     const sheet = ss.getSheetByName(FORM_TAB);
@@ -52,7 +53,7 @@ function doGet(e) {
 // Body: single row object OR array of row objects
 // Upserts by Invoice ID (col A). Creates new row if ID not found.
 function doPost(e) {
-  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(INVOICE_TAB);
   if (!sheet) return json({ ok: false, error: 'Sheet "' + INVOICE_TAB + '" not found' });
 
