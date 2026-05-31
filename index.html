@@ -1435,8 +1435,8 @@ async function syncToSheet(inv){
   const row=invToRow(inv);
   if(!navigator.onLine){enqueueRow(row);updateSyncDot();return;}
   try{
-    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(row)});
-    setSyncDot('synced');
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(row)});
+    if(resp.ok){setSyncDot('synced');}else{enqueueRow(row);setSyncDot('pending');}
   }catch{enqueueRow(row);setSyncDot('pending');}
 }
 
@@ -1447,10 +1447,9 @@ async function flushSheetQueue(){
   const q=JSON.parse(localStorage.getItem('apex-sheet-q')||'[]');
   if(!q.length)return;
   try{
-    await fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(q)});
-    localStorage.removeItem('apex-sheet-q');
-    setSyncDot('synced');
-  }catch{}
+    const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(q)});
+    if(resp.ok){localStorage.removeItem('apex-sheet-q');setSyncDot('synced');}
+  }catch{setSyncDot('pending');}
 }
 
 function enqueueRow(row){
@@ -1520,7 +1519,7 @@ async function fetchSheetInvoices(){
       }
     }
     if(imported>0)toast(`Imported ${imported} invoice${imported!==1?'s':''} from Sheets`);
-  }catch(e){console.error('Sheet fetch failed',e);}
+  }catch(e){console.error('Sheet fetch failed',e);toast('Could not reach Google Sheets',false);}
 }
 
 // GET Form Submissions tab → populate formSubmissions cache
