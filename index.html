@@ -495,7 +495,7 @@ select.ed-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg 
       <div class="form-grp"><label class="label">Company Name</label><input id="s-name" class="field" type="text" value="Apex Terrain Management Ltd."></div>
       <div class="form-grp"><label class="label">Street Address</label><input id="s-street" class="field" type="text" placeholder="Your street address"></div>
       <div class="form-grp"><label class="label">City, Province, Postal</label><input id="s-city" class="field" type="text" placeholder="City, Province, Postal"></div>
-      <div class="form-grp"><label class="label">Phone</label><input id="s-phone" class="field" type="text" placeholder="(123) 456-7890"></div>
+      <div class="form-grp"><label class="label">Phone</label><input id="s-phone" class="field" type="text" placeholder="236-662-8066"></div>
       <div class="form-grp"><label class="label">Email</label><input id="s-email" class="field" type="email" placeholder="youremail@domain.com"></div>
       <div class="form-grp"><label class="label">GST Reg #</label><input id="s-gst-reg" class="field" type="text" placeholder="GST registration number"></div>
       <div class="form-grp"><label class="label">E-transfer Payment Email</label><input id="s-pay-email" class="field" type="email" placeholder="payment@yourcompany.com"></div>
@@ -651,7 +651,7 @@ const esc2=s=>String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 // ═══════════════════════════════════════════════════════════════
 function getS(){
   const s=JSON.parse(localStorage.getItem('apex-settings')||'{}');
-  return Object.assign({svc:EJ.svc,tpl:EJ.tpl,key:EJ.key},s);
+  return Object.assign({svc:EJ.svc,tpl:EJ.tpl,key:EJ.key,phone:'236-662-8066'},s);
 }
 function loadSettings(){
   const s=getS();
